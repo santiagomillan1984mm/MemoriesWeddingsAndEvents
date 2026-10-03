@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2E5B4A">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232E5B4A'/%3E%3Ctext x='32' y='43' font-family='Georgia' font-size='34' text-anchor='middle' fill='%23F3EAD7'%3EM%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232E5B4A'/%3E%3Ctext x='32' y='43' font-family='Georgia' font-size='34' text-anchor='middle' fill='%23F3EAD7'%3EM%3C/text%3E%3C/svg%3E">
+<title>Memories Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: app de trabajo — barra superior, lista de bodas y ficha de cada boda con pestañas */
+:root{
+  --bg:#F1F3EF; --surface:#FFFFFF; --surface-2:#F6F8F4; --ink:#1E2A24; --muted:#5D6A62; --line:#D7DED5;
+  --accent:#2E5B4A; --accent-ink:#FFFFFF; --accent-soft:#DDE9E2; --gold:#A9843F; --gold-soft:#F3EAD7;
+  --ok:#2F7A4F; --warn:#B26A1E; --bad:#A13A3A;
+  --font-display:'Marcellus','Cormorant Garamond',Georgia,serif;
+  --font-body:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#111714; --surface:#18201C; --surface-2:#1E2823; --ink:#E6ECE8; --muted:#9BA9A0; --line:#2E3B34;
+  --accent:#8CC4AA; --accent-ink:#0E1A14; --accent-soft:#233429; --gold:#D4B477; --gold-soft:#3A3122;
+  --ok:#7CC79A; --warn:#E3A35A; --bad:#E58989; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#111714; --surface:#18201C; --surface-2:#1E2823; --ink:#E6ECE8; --muted:#9BA9A0; --line:#2E3B34;
+  --accent:#8CC4AA; --accent-ink:#0E1A14; --accent-soft:#233429; --gold:#D4B477; --gold-soft:#3A3122;
+  --ok:#7CC79A; --warn:#E3A35A; --bad:#E58989; color-scheme:dark }
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:14px;line-height:1.45}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;display:flex;align-items:center;gap:10px;padding-block:10px;padding-inline:16px;background:var(--surface);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{display:flex;flex-direction:column;line-height:1.05;cursor:pointer}
+.brand b{font-family:var(--font-display);font-weight:400;font-size:22px;color:var(--accent);letter-spacing:.02em}
+.brand span{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:600}
+.top .sp{flex:1}
+.who{font-size:12.5px;color:var(--muted);max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px;font-weight:500;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{background:var(--surface-2)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ghost{border-color:transparent;background:none}
+.btn.danger{color:var(--bad)}
+.btn.sm{padding:4px 9px;font-size:13px}
+.seg{display:inline-flex;gap:2px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:2px}
+.seg button{border:0;background:none;border-radius:7px;padding:4px 10px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.wrap{max-width:1120px;margin:0 auto;padding-block:20px 60px;padding-inline:16px}
+h1,h2,h3{font-family:var(--font-display);font-weight:400;margin:0;text-wrap:balance}
+h1{font-size:30px}h2{font-size:22px}h3{font-size:18px}
+.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:700;margin:0 0 6px}
+.muted{color:var(--muted)}
+.note{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.grid{display:grid;gap:14px}
+.cols2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px}
+.wlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:14px}
+.wcard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;display:grid;gap:8px;text-align:left}
+.wcard:hover{border-color:var(--accent)}
+.wcard h3{font-size:20px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--muted)}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:99px;background:var(--accent-soft);color:var(--ink)}
+.pill.gold{background:var(--gold-soft)}
+.pill.warn{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
+.pill.bad{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}
+.pill.ok{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.bar{height:8px;background:var(--surface-2);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.whead{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 20px;margin-bottom:14px}
+.whead h1{flex:1 1 280px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:16px;overflow-x:auto;scrollbar-width:none}
+.tabs button{border:0;background:none;padding:10px 12px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.field{display:grid;gap:5px;margin-bottom:12px;min-width:0}
+.field>label{font-size:12px;font-weight:600;color:var(--muted)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row>*{min-width:0}
+.f2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:0 12px}
+input[type=text],input[type=email],input[type=password],input[type=number],input[type=date],input[type=time],select,textarea{border:1px solid var(--line);background:var(--surface-2);border-radius:8px;padding:7px 9px;width:100%}
+textarea{resize:vertical;min-height:80px}
+input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
+input[readonly],input:disabled,select:disabled{opacity:.75}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.stat{background:var(--surface-2);border-radius:12px;padding:12px}
+.stat b{display:block;font-family:var(--font-mono);font-weight:500;font-size:19px;font-variant-numeric:tabular-nums}
+.stat span{font-size:11.5px;color:var(--muted)}
+.big{font-family:var(--font-display);font-size:40px;line-height:1;color:var(--accent)}
+/* itinerario */
+.itin{display:grid;gap:6px}
+.blk{display:grid;grid-template-columns:118px minmax(0,1fr) auto;gap:10px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.blk.anchor{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.blk.hidden-c{opacity:.6}
+.blk .tm{font-family:var(--font-mono);font-size:13px;font-variant-numeric:tabular-nums;line-height:1.3}
+.blk .tm small{display:block;color:var(--muted);font-size:11.5px}
+.blk .ti input{font-weight:600}
+.blk .ctl{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.blk .ex{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:6px;font-size:12.5px;color:var(--muted);align-items:center}
+.blk .ex input[type=number]{width:72px;padding:4px 6px}
+.blk .ex input[type=time]{width:auto;padding:4px 6px}
+.sunrow{display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:10px;background:linear-gradient(90deg,var(--gold-soft),transparent);font-size:13px;font-weight:600;color:var(--gold)}
+.sunrow .tm{font-family:var(--font-mono);min-width:106px}
+.ro .blk{grid-template-columns:118px minmax(0,1fr)}
+/* presupuesto */
+.bcat{margin-top:18px}
+.bcat h3{display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-size:17px;border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:6px}
+.bcat h3 small{font-family:var(--font-mono);font-size:13px;color:var(--muted)}
+.bitem{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin-top:6px}
+.bsum{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.3fr) 110px 110px 110px 34px;gap:8px;align-items:center;padding:8px 10px}
+.bsum input,.bsum select{padding:5px 7px}
+.ml{display:block;min-width:0}.ml span{display:none}.ml input,.ml select{width:100%}
+.tg .tgl{display:none}
+.money{font-family:var(--font-mono);font-variant-numeric:tabular-nums;text-align:right}
+.bdet{border-top:1px dashed var(--line);padding:10px;display:grid;gap:8px}
+.bhead{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.3fr) 110px 110px 110px 34px;gap:8px;padding:0 10px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.pays{display:grid;gap:4px}
+.pay{display:grid;grid-template-columns:140px 130px minmax(0,1fr) 30px;gap:6px;align-items:center}
+.ro .bsum{grid-template-columns:minmax(0,2fr) minmax(0,1.3fr) 120px 120px}
+.ro .bhead{grid-template-columns:minmax(0,2fr) minmax(0,1.3fr) 120px 120px}
+@media (max-width:760px){
+  .bhead{display:none}
+  .bsum,.ro .bsum{grid-template-columns:1fr 1fr}
+  .bsum .c-concept{grid-column:1/-1}
+  .ml span{display:block;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
+  .tg{grid-column:1/-1;justify-content:center}.tg .tgl{display:inline}.tg .tgs{display:none}
+  .bsum .lbl-m::before{content:attr(data-l);display:block;font-family:var(--font-body);font-size:10.5px;color:var(--muted);text-align:left;text-transform:uppercase;letter-spacing:.06em}
+  .pay{grid-template-columns:1fr 1fr}
+  .blk,.ro .blk{grid-template-columns:1fr}
+  .blk .ctl{justify-content:flex-start}
+}
+/* documentos */
+.docs{display:grid;gap:8px}
+.doc{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.doc .ic{width:40px;height:40px;border-radius:10px;background:var(--gold-soft);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase}
+.doc .nm{font-weight:600;overflow-wrap:anywhere}
+.drop{border:2px dashed var(--line);border-radius:14px;padding:22px;text-align:center;color:var(--muted);background:var(--surface-2)}
+.drop.on{border-color:var(--accent);background:var(--accent-soft)}
+/* login */
+.login{max-width:420px;margin:8vh auto;padding-inline:16px}
+.login .card{padding:24px}
+.login h1{font-size:34px;color:var(--accent)}
+.status{font-size:12px;color:var(--muted);min-width:70px;text-align:right}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:13px;z-index:50;max-width:calc(100% - 32px)}
+.modal{position:fixed;inset:0;background:rgba(10,15,12,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:40}
+.sheet{background:var(--surface);border-radius:14px;padding:20px;width:min(520px,100%);max-height:100%;overflow:auto}
+.empty{text-align:center;padding:40px 16px;color:var(--muted)}
+.empty h2{color:var(--ink);margin-bottom:6px}
+.demo{background:var(--gold-soft);color:var(--ink);font-size:12px;padding-block:6px;padding-inline:16px;text-align:center}
+.cdown{display:flex;align-items:baseline;gap:8px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13.5px}
+.kv dt{color:var(--muted)}.kv dd{margin:0;font-weight:600}
+.upc{display:grid;gap:6px}
+.upc div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding-bottom:6px;font-size:13px}
+.upc .money{white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast" hidden></div>
+<div class="modal" id="modal" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
+
+<script>
+(()=>{'use strict';
+/* ---------- Configuración ---------- */
+const CONFIG={url:'https://fpizlsefbcmhzmkwynxv.supabase.co',key:'sb_publishable_eynYPP8nIpmbP3zHHoujOA_VmZ8GBI9'};          // Supabase: Project URL y anon/publishable key
+const DEMO=!CONFIG.url||!CONFIG.key;
+const SB_JS='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js';
+
+const $=s=>document.querySelector(s);
+const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const clone=o=>JSON.parse(JSON.stringify(o));
+function toast(t){const e=$('#toast');e.textContent=t;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>e.hidden=true,3800)}
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('No se pudo cargar '+src));document.head.appendChild(s)})}
+const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}};
+
+/* ---------- Catálogos ---------- */
+const LOCS=[['Los Cabos, BCS',22.8905,-109.9167,'America/Mazatlan'],['San José del Cabo, BCS',23.0636,-109.6973,'America/Mazatlan'],['Todos Santos, BCS',23.4464,-110.2265,'America/Mazatlan'],['La Paz, BCS',24.1426,-110.3128,'America/Mazatlan'],['Mazatlán, Sin.',23.2494,-106.4111,'America/Mazatlan'],['Puerto Vallarta, Jal.',20.6534,-105.2253,'America/Mexico_City'],['Punta Mita / Riviera Nayarit',20.7712,-105.5222,'America/Bahia_Banderas'],['Cancún, Q. Roo',21.1619,-86.8515,'America/Cancun'],['Playa del Carmen, Q. Roo',20.6296,-87.0739,'America/Cancun'],['Tulum, Q. Roo',20.2114,-87.4654,'America/Cancun'],['Mérida, Yuc.',20.9674,-89.5926,'America/Merida'],['San Miguel de Allende, Gto.',20.9144,-100.7452,'America/Mexico_City'],['Ciudad de México',19.4326,-99.1332,'America/Mexico_City'],['Guadalajara, Jal.',20.6597,-103.3496,'America/Mexico_City'],['Tequila, Jal.',20.8822,-103.8367,'America/Mexico_City'],['Oaxaca, Oax.',17.0732,-96.7266,'America/Mexico_City'],['Monterrey, N.L.',25.6866,-100.3161,'America/Monterrey'],['Valle de Guadalupe, B.C.',32.0907,-116.5753,'America/Tijuana']];
+const TZS=[['America/Mazatlan','Pacífico (BCS, Sinaloa, Nayarit)'],['America/Mexico_City','Centro (CDMX, Jalisco, Guanajuato)'],['America/Bahia_Banderas','Bahía de Banderas'],['America/Cancun','Sureste (Quintana Roo)'],['America/Merida','Yucatán'],['America/Monterrey','Noreste (Nuevo León)'],['America/Tijuana','Noroeste (Baja California)']];
+const CATS=['Lugar','Banquete','Bebidas y barra','Fotografía','Video','Música y DJ','Flores y decoración','Mobiliario y mantelería','Iluminación y audio','Pastel y postres','Vestido y atuendo','Belleza','Invitaciones y papelería','Ceremonia','Transporte','Hospedaje','Recuerdos y regalos','Honorarios Memories','Otros'];
+const STATUS=[['estimado','Estimado'],['cotizado','Cotizado'],['contratado','Contratado'],['descartado','Descartado']];
+const DOCK=[['contrato','Contrato'],['cotizacion','Cotización'],['factura','Factura o recibo'],['diseno','Diseño o plano'],['otro','Otro']];
+const DEFAULT_ITIN=[
+  ['Maquillaje y peinado',150],['Fotos de detalles y vestido',30],['La novia se arregla y primer vistazo',30],['Fotos con damas y padrinos',30],['Llegada de invitados y bebida de bienvenida',30],
+  ['Ceremonia',40,1],['Fotos de grupo y familia',20],['Fotos de pareja en la hora dorada',25],['Cóctel',60],['Entrada de los novios',10],['Cena',75],['Brindis y discursos',20],['Primer baile',10],['Fiesta',150],['Corte de pastel',15],['Fiesta y snack de medianoche',90],['Salida de los novios',15]];
+function itinFrom(list){return list.map(b=>({id:uid(),t:b.t??b[0],dur:b.dur??b[1],anchor:!!(b.anchor??b[2]),fixed:b.fixed||'',couple:b.couple!==false,note:b.note||''}))}
+
+/* ---------- Atardecer ---------- */
+function sunTimes(ds,lat,lng){if(!ds||lat==null||lng==null)return null;const r=Math.PI/180,[y,m,d]=ds.split('-').map(Number);const Jd=Date.UTC(y,m-1,d,12)/864e5+2440587.5;
+  const n=Math.ceil(Jd-2451545+.0008),Js=n-lng/360,M=(357.5291+.98560028*Js)%360,C=1.9148*Math.sin(M*r)+.02*Math.sin(2*M*r)+.0003*Math.sin(3*M*r),L=(M+C+180+102.9372)%360,
+  Jt=2451545+Js+.0053*Math.sin(M*r)-.0069*Math.sin(2*L*r),sd=Math.sin(L*r)*Math.sin(23.4397*r),cd=Math.cos(Math.asin(sd)),cw=(Math.sin(-.833*r)-Math.sin(lat*r)*sd)/(Math.cos(lat*r)*cd);
+  if(cw<-1||cw>1)return null;const w=Math.acos(cw)/r,toD=J=>new Date((J-2440587.5)*864e5);return {rise:toD(Jt-w/360),set:toD(Jt+w/360)}}
+function minsIn(date,tz){const p=new Intl.DateTimeFormat('en-GB',{timeZone:tz||'America/Mazatlan',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(date);return +p.find(x=>x.type==='hour').value*60+ +p.find(x=>x.type==='minute').value}
+function hm(min){if(min==null||isNaN(min))return '—';min=((Math.round(min)%1440)+1440)%1440;let h=Math.floor(min/60),m=min%60;const ap=h>=12?'p.m.':'a.m.';h=h%12||12;return `${h}:${String(m).padStart(2,'0')} ${ap}`}
+const toMin=s=>{if(!s)return null;const [h,m]=s.split(':').map(Number);return h*60+m};
+function sunsetMin(w){const L=w.loc||{};const s=sunTimes(w.date,L.lat,L.lng);return s?minsIn(s.set,L.tz):null}
+function schedule(w){const it=w.itinerary||{},bl=it.blocks||[],lead=it.lead??90,round=it.round!==false;const ss=sunsetMin(w);const out=bl.map(()=>({s:0,e:0}));
+  let a=bl.findIndex(b=>b.anchor);let aStart;
+  if(a<0){a=0;aStart=toMin(bl[0]?.fixed)??960}else aStart=bl[a].fixed?toMin(bl[a].fixed):ss!=null?ss-lead:toMin('17:00');
+  if(round&&!(bl[a]&&bl[a].fixed))aStart=Math.floor(aStart/5)*5;
+  if(!bl.length)return {out,ss};
+  out[a]={s:aStart,e:aStart+(+bl[a].dur||0)};
+  let next=aStart;for(let i=a-1;i>=0;i--){const s=bl[i].fixed?toMin(bl[i].fixed):next-(+bl[i].dur||0);out[i]={s,e:s+(+bl[i].dur||0)};next=s}
+  let prev=out[a].e;for(let i=a+1;i<bl.length;i++){const s=bl[i].fixed?toMin(bl[i].fixed):prev;out[i]={s,e:s+(+bl[i].dur||0)};prev=out[i].e}
+  return {out,ss}}
+
+/* ---------- Formato ---------- */
+const money=(n,cur)=>new Intl.NumberFormat('es-MX',{style:'currency',currency:cur||'MXN',maximumFractionDigits:0}).format(+n||0);
+function fdate(ds,opt){if(!ds)return 'Sin fecha';const [y,m,d]=ds.split('-').map(Number);return new Date(Date.UTC(y,m-1,d,12)).toLocaleDateString('es-MX',Object.assign({timeZone:'UTC',weekday:'long',day:'numeric',month:'long',year:'numeric'},opt||{}))}
+function daysTo(ds){if(!ds)return null;const [y,m,d]=ds.split('-').map(Number);const t=new Date();const a=Date.UTC(t.getFullYear(),t.getMonth(),t.getDate()),b=Date.UTC(y,m-1,d);return Math.round((b-a)/864e5)}
+function daysLbl(n){if(n==null)return '';if(n===0)return 'Es hoy';if(n<0)return `Hace ${-n} días`;return n===1?'Falta 1 día':`Faltan ${n} días`}
+
+/* ---------- Presupuesto ---------- */
+function itemAmount(i){if(i.status==='descartado')return 0;if(+i.quote>0)return +i.quote;return +i.est||0}
+function itemPaid(i){return (i.payments||[]).reduce((a,p)=>a+(+p.amount||0),0)}
+function totals(w,coupleOnly){const items=(w.budget?.items||[]).filter(i=>!coupleOnly||i.visible!==false);let est=0,proj=0,comm=0,paid=0;
+  for(const i of items){if(i.status==='descartado')continue;est+=+i.est||0;proj+=itemAmount(i);if(i.status==='contratado')comm+=itemAmount(i);paid+=itemPaid(i)}
+  return {est,proj,comm,paid,due:Math.max(0,comm-paid),target:+w.budget?.target||0}}
+
+/* ---------- Datos ---------- */
+const Store={sb:null,user:null,role:null,settings:{},chan:null,
+  async init(){if(DEMO){const d=this.demo();this.user={id:'demo',email:'demo@memories.mx'};this.role=LS.get('mw.role')||'planner';this.settings=d.settings||{};return}
+    await loadScript(SB_JS);this.sb=supabase.createClient(CONFIG.url,CONFIG.key);const {data}=await this.sb.auth.getSession();await this.setSession(data.session);
+    this.sb.auth.onAuthStateChange((ev,s)=>{if((ev==='SIGNED_IN'&&s?.user?.id!==this.user?.id)||ev==='SIGNED_OUT')setTimeout(async()=>{await this.setSession(s);route()},0)})},
+  async setSession(s){this.user=s?.user||null;this.role=null;if(!this.user)return;const {data}=await this.sb.from('planner_settings').select('data').eq('planner_id',this.user.id).maybeSingle();if(data){this.role='planner';this.settings=data.data||{}}else{this.role='couple';if(LS.get('mw.wantPlanner')===this.email()){LS.set('mw.wantPlanner','');await this.becomePlanner().catch(()=>{})}}},
+  demo(){try{return JSON.parse(LS.get('mw.demo'))||{weddings:[],docs:[],priv:{},settings:{}}}catch(e){return {weddings:[],docs:[],priv:{},settings:{}}}},
+  demoSave(d){if(!LS.set('mw.demo',JSON.stringify(d)))toast('El navegador no tiene espacio para guardar más archivos en modo demo.')},
+  email(){return (this.user?.email||'').toLowerCase()},
+  async listWeddings(){if(DEMO){const d=this.demo();return d.weddings.filter(w=>this.role==='planner'||(w.couple_emails||[]).includes(this.email())||(this.role==='couple'&&LS.get('mw.demoCouple')===w.id))}
+    const q=this.sb.from('weddings').select('*').order('date',{ascending:true});const {data,error}=await q;if(error)throw error;return this.role==='planner'?data.filter(w=>w.planner_id===this.user.id):data},
+  async getWedding(id){if(DEMO)return this.demo().weddings.find(w=>w.id===id)||null;const {data,error}=await this.sb.from('weddings').select('*').eq('id',id).maybeSingle();if(error)throw error;return data},
+  async saveWedding(w){const row=clone(w);delete row.created_at;if(DEMO){const d=this.demo();const i=d.weddings.findIndex(x=>x.id===w.id);row.updated_at=new Date().toISOString();if(i<0)d.weddings.push(row);else d.weddings[i]=row;this.demoSave(d);return row}
+    row.planner_id=row.planner_id||this.user.id;row.updated_at=new Date().toISOString();const {data,error}=await this.sb.from('weddings').upsert(row).select().single();if(error)throw error;return data},
+  async deleteWedding(id){if(DEMO){const d=this.demo();d.weddings=d.weddings.filter(w=>w.id!==id);d.docs=d.docs.filter(x=>x.wedding_id!==id);this.demoSave(d);return}
+    const {data:docs}=await this.sb.from('documents').select('path').eq('wedding_id',id);if(docs?.length)await this.sb.storage.from('docs').remove(docs.map(d=>d.path));const {error}=await this.sb.from('weddings').delete().eq('id',id);if(error)throw error},
+  async getPrivate(id){if(DEMO)return this.demo().priv[id]||{};const {data}=await this.sb.from('wedding_private').select('data').eq('wedding_id',id).maybeSingle();return data?.data||{}},
+  async savePrivate(id,obj){if(DEMO){const d=this.demo();d.priv[id]=obj;this.demoSave(d);return}const {error}=await this.sb.from('wedding_private').upsert({wedding_id:id,data:obj});if(error)throw error},
+  async listDocs(id){if(DEMO)return this.demo().docs.filter(x=>x.wedding_id===id&&(this.role==='planner'||x.visible));const {data,error}=await this.sb.from('documents').select('*').eq('wedding_id',id).order('created_at',{ascending:false});if(error)throw error;return data},
+  async uploadDoc(id,file,meta){if(DEMO){if(file.size>3e6)throw new Error('En modo demo solo caben archivos de hasta 3 MB.');const url=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)});
+      const d=this.demo();const doc=Object.assign({id:uid(),wedding_id:id,name:file.name,path:url,mime:file.type,size:file.size,visible:true,kind:'otro',created_at:new Date().toISOString()},meta);d.docs.unshift(doc);this.demoSave(d);return doc}
+    const safe=file.name.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w.\-]+/g,'_');const path=`${id}/${uid()}-${safe}`;
+    const up=await this.sb.storage.from('docs').upload(path,file,{contentType:file.type||'application/octet-stream'});if(up.error)throw up.error;
+    const {data,error}=await this.sb.from('documents').insert(Object.assign({wedding_id:id,name:file.name,path,mime:file.type,size:file.size,visible:true,kind:'otro'},meta)).select().single();if(error)throw error;return data},
+  async updateDoc(doc,patch){if(DEMO){const d=this.demo();const x=d.docs.find(y=>y.id===doc.id);Object.assign(x,patch);this.demoSave(d);return}const {error}=await this.sb.from('documents').update(patch).eq('id',doc.id);if(error)throw error},
+  async deleteDoc(doc){if(DEMO){const d=this.demo();d.docs=d.docs.filter(y=>y.id!==doc.id);this.demoSave(d);return}await this.sb.storage.from('docs').remove([doc.path]);const {error}=await this.sb.from('documents').delete().eq('id',doc.id);if(error)throw error},
+  async docUrl(doc){if(DEMO)return doc.path;const {data,error}=await this.sb.storage.from('docs').createSignedUrl(doc.path,3600);if(error)throw error;return data.signedUrl},
+  async saveSettings(s){this.settings=s;if(DEMO){const d=this.demo();d.settings=s;this.demoSave(d);return}const {error}=await this.sb.from('planner_settings').upsert({planner_id:this.user.id,data:s});if(error)throw error},
+  async becomePlanner(){await this.saveSettings({name:''});this.role='planner'},
+  subscribe(id,cb){this.unsub();if(DEMO)return;this.chan=this.sb.channel('w-'+id).on('postgres_changes',{event:'*',schema:'public',table:'weddings',filter:`id=eq.${id}`},()=>cb('w')).on('postgres_changes',{event:'*',schema:'public',table:'documents',filter:`wedding_id=eq.${id}`},()=>cb('d')).subscribe()},
+  unsub(){if(this.chan){this.sb.removeChannel(this.chan);this.chan=null}},
+  async signIn(email,pw){const {error}=await this.sb.auth.signInWithPassword({email,password:pw});if(error)throw error},
+  async signUp(email,pw){const {data,error}=await this.sb.auth.signUp({email,password:pw,options:{emailRedirectTo:location.origin+location.pathname}});if(error)throw error;return data},
+  async createCouple(email,pw){if(DEMO)return;const c2=supabase.createClient(CONFIG.url,CONFIG.key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:'mw-tmp'}});
+    const {error}=await c2.auth.signUp({email,password:pw});if(error&&!/registered|exists/i.test(error.message))throw error;return !error},
+  async magic(email){const {error}=await this.sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});if(error)throw error},
+  async signOut(){if(DEMO)return;await this.sb.auth.signOut()}
+};
+
+/* ---------- Estado de la vista ---------- */
+const V={cred:null,view:'home',id:null,tab:'resumen',w:null,priv:{},docs:[],saving:false,pending:false,openItems:new Set(),editIt:false};
+const isPlanner=()=>Store.role==='planner';
+let saveT=null;
+function markDirty(){V.pending=true;setStatus('Sin guardar');clearTimeout(saveT);saveT=setTimeout(saveNow,700)}
+async function saveNow(){if(!V.w||!isPlanner())return;clearTimeout(saveT);V.saving=true;setStatus('Guardando…');try{const r=await Store.saveWedding(V.w);V.w.updated_at=r.updated_at;V.pending=false;setStatus('Guardado')}catch(e){setStatus('Error');toast('No se pudo guardar: '+(e.message||e))}V.saving=false}
+function setStatus(t){const s=$('#status');if(s)s.textContent=t}
+window.addEventListener('beforeunload',e=>{if(V.pending){saveNow();e.preventDefault();e.returnValue=''}});
+
+/* ---------- Render principal ---------- */
+function topBar(){const demoBar=DEMO?`<div class="demo">Modo demo: los datos se guardan solo en este navegador. ${isPlanner()?'':'Estás viendo la app como la pareja.'}</div>`:'';
+  return `<header class="top"><div class="brand" id="goHome" role="button" tabindex="0"><b>Memories</b><span>Weddings &amp; Events</span></div><div class="sp"></div>
+  ${DEMO?`<div class="seg" role="group" aria-label="Ver como"><button data-role="planner" aria-pressed="${isPlanner()}">Planner</button><button data-role="couple" aria-pressed="${!isPlanner()}">Pareja</button></div>`:''}
+  ${V.view==='wedding'&&isPlanner()?'<span class="status" id="status" aria-live="polite"></span>':''}
+  <span class="who">${esc(Store.user?.email||'')}</span>${DEMO?'':'<button class="btn sm" id="logout">Salir</button>'}</header>${demoBar}`}
+function bindTop(){const h=$('#goHome');if(h)h.onclick=()=>{if(isPlanner()){saveNow();V.view='home';V.w=null;Store.unsub();route()}};
+  document.querySelectorAll('[data-role]').forEach(b=>b.onclick=async()=>{await saveNow();LS.set('mw.role',b.dataset.role);Store.role=b.dataset.role;V.view='home';V.w=null;route()});
+  const lo=$('#logout');if(lo)lo.onclick=async()=>{await saveNow();await Store.signOut();V.view='home';V.w=null;route()}}
+async function route(){
+  if(!Store.user){renderLogin();return}
+  if(!isPlanner()){const ws=await Store.listWeddings().catch(()=>[]);
+    if(!ws.length){$('#app').innerHTML=topBar()+`<main class="wrap"><div class="empty"><h2>Aún no hay una boda con tu correo</h2><p>Pídele a tu wedding planner que agregue <b>${esc(Store.email())}</b> en tu boda.</p>${DEMO?'<p class="note">En el modo demo, primero crea una boda como Planner y agrega un correo de pareja.</p>':`<p class="note" style="margin-top:24px">¿Eres la organizadora? <button class="btn sm" id="bePl">Crear mi cuenta de planner</button></p>`}</div></main>`;bindTop();const bp=$('#bePl');if(bp)bp.onclick=async()=>{await Store.becomePlanner();route()};return}
+    if(!V.w||!ws.some(w=>w.id===V.w.id)){V.id=ws[0].id}V.view='wedding';return openWedding(V.id,V.tab)}
+  if(V.view==='wedding'&&V.id)return openWedding(V.id,V.tab);
+  renderHome()}
+async function renderHome(){const ws=await Store.listWeddings().catch(e=>{toast(e.message);return []});
+  const up=ws.filter(w=>(daysTo(w.date)??1)>=0),past=ws.filter(w=>(daysTo(w.date)??1)<0);
+  const card=w=>{const t=totals(w),d=daysTo(w.date),pct=t.target?Math.min(100,Math.round(t.comm/t.target*100)):0;return `<button class="wcard" data-open="${w.id}"><p class="eyebrow">${esc(fdate(w.date,{weekday:undefined}))}</p><h3>${esc(w.couple||'Boda sin nombre')}</h3>
+    <div class="meta"><span>${esc(w.place||w.loc?.name||'Lugar por definir')}</span>${w.guests?`<span>${w.guests} invitados</span>`:''}</div>
+    <div class="row">${d!=null?`<span class="pill ${d<0?'':d<=30?'warn':'gold'}">${daysLbl(d)}</span>`:''}${(w.couple_emails||[]).length?'<span class="pill">Pareja con acceso</span>':''}</div>
+    ${t.target?`<div><div class="meta" style="justify-content:space-between"><span>Contratado</span><span class="money">${money(t.comm,w.currency)} de ${money(t.target,w.currency)}</span></div><div class="bar"><i style="width:${pct}%"></i></div></div>`:''}</button>`};
+  $('#app').innerHTML=topBar()+`<main class="wrap"><div class="whead"><div style="flex:1"><p class="eyebrow">Tus bodas</p><h1>${ws.length?'Próximas bodas':'Empieza tu primera boda'}</h1></div><button class="btn primary" id="newW">+ Nueva boda</button></div>
+  ${ws.length?`<div class="wlist">${up.map(card).join('')}</div>${past.length?`<h2 style="margin:28px 0 12px">Bodas pasadas</h2><div class="wlist">${past.map(card).join('')}</div>`:''}`:`<div class="card empty"><h2>Aquí verás todas tus bodas</h2><p>Crea una boda para armar su itinerario con la hora del atardecer, su presupuesto y sus documentos, y darle acceso a la pareja.</p><button class="btn primary" id="newW2">Crear boda</button></div>`}
+  <section class="card" style="margin-top:24px"><h3>Mi plantilla de itinerario</h3><p class="note">Las bodas nuevas empiezan con esta plantilla. Para cambiarla, ajusta el itinerario de cualquier boda y toca "Guardar como mi plantilla".</p><p class="note">${(Store.settings.template||[]).length?`Tu plantilla tiene ${(Store.settings.template||[]).length} momentos.`:'Usas la plantilla de Memories.'}</p></section></main>`;
+  bindTop();const nw=()=>newWedding();$('#newW').onclick=nw;const n2=$('#newW2');if(n2)n2.onclick=nw;
+  document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openWedding(b.dataset.open,'resumen'))}
+function newWedding(){const L=LOCS[0];modal(`<h2>Nueva boda</h2><p class="note">Después puedes cambiar todo.</p>
+  <div class="field" style="margin-top:14px"><label for="nwC">Pareja</label><input type="text" id="nwC" placeholder="Ana &amp; Luis"></div>
+  <div class="f2"><div class="field"><label for="nwD">Fecha</label><input type="date" id="nwD"></div><div class="field"><label for="nwG">Invitados</label><input type="number" id="nwG" min="0" value="100"></div></div>
+  <div class="field"><label for="nwL">Destino</label><select id="nwL">${LOCS.map((l,i)=>`<option value="${i}">${esc(l[0])}</option>`).join('')}<option value="x">Otro (escribir coordenadas)</option></select></div>
+  <div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn" id="mX">Cancelar</button><button class="btn primary" id="mOk">Crear boda</button></div>`);
+  $('#mX').onclick=closeModal;$('#mOk').onclick=async()=>{const li=$('#nwL').value,l=li==='x'?LOCS[0]:LOCS[+li];
+    const tpl=(Store.settings.template||[]).length?Store.settings.template:DEFAULT_ITIN;
+    const w={id:crypto.randomUUID?crypto.randomUUID():uid(),couple:$('#nwC').value.trim(),date:$('#nwD').value||null,guests:+$('#nwG').value||0,place:'',loc:{name:l[0],lat:l[1],lng:l[2],tz:l[3]},currency:'MXN',couple_emails:[],
+      itinerary:{lead:90,round:true,blocks:itinFrom(tpl)},budget:{target:0,items:[]},notes:''};
+    try{const r=await Store.saveWedding(w);closeModal();openWedding(r.id,li==='x'?'datos':'resumen')}catch(e){toast('No se pudo crear: '+(e.message||e))}}}
+function modal(html){$('#sheet').innerHTML=html;$('#modal').hidden=false;const f=$('#sheet').querySelector('input,select,button');if(f)f.focus()}
+function closeModal(){$('#modal').hidden=true}
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#modal').hidden)closeModal()});
+
+/* ---------- Boda ---------- */
+async function openWedding(id,tab){await saveNow();const w=await Store.getWedding(id).catch(e=>{toast(e.message);return null});if(!w){V.view='home';return renderHome()}
+  V.view='wedding';V.id=id;V.w=w;V.tab=tab||V.tab||'resumen';w.itinerary=w.itinerary||{lead:90,blocks:[]};w.itinerary.blocks=w.itinerary.blocks||[];w.budget=w.budget||{target:0,items:[]};w.budget.items=w.budget.items||[];w.loc=w.loc||{};w.couple_emails=w.couple_emails||[];
+  V.priv=isPlanner()?await Store.getPrivate(id).catch(()=>({})):{};V.docs=await Store.listDocs(id).catch(()=>[]);
+  Store.subscribe(id,async kind=>{if(kind==='d'){V.docs=await Store.listDocs(id).catch(()=>V.docs);if(V.tab==='docs'||V.tab==='resumen')renderTab()}
+    else{if(isPlanner()&&(V.pending||V.saving))return;const nw=await Store.getWedding(id).catch(()=>null);if(!nw)return;if(isPlanner()&&nw.updated_at===V.w.updated_at)return;const a=document.activeElement;if(isPlanner()&&a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;
+      Object.assign(V.w,nw);renderWedding();if(!isPlanner())toast('Tu planner actualizó la información.')}});
+  renderWedding()}
+const TABS_P=[['resumen','Resumen'],['itinerario','Itinerario'],['presupuesto','Presupuesto'],['docs','Documentos'],['datos','Datos y acceso']];
+const TABS_C=[['resumen','Resumen'],['itinerario','Itinerario'],['presupuesto','Presupuesto'],['docs','Documentos']];
+function renderWedding(){const w=V.w,d=daysTo(w.date),tabs=isPlanner()?TABS_P:TABS_C;if(!tabs.some(t=>t[0]===V.tab))V.tab='resumen';
+  $('#app').innerHTML=topBar()+`<main class="wrap"><div class="whead"><div style="flex:1 1 280px;min-width:0">${isPlanner()?'<button class="btn ghost sm" id="back" style="padding-left:0">← Todas las bodas</button>':''}<p class="eyebrow">${esc(fdate(w.date))}</p><h1>${esc(w.couple||'Boda sin nombre')}</h1></div>
+  <div class="row">${d!=null?`<span class="pill ${d<=30&&d>=0?'warn':'gold'}">${daysLbl(d)}</span>`:''}<span class="pill">${esc(w.place||w.loc?.name||'Lugar por definir')}</span></div></div>
+  <nav class="tabs" role="tablist">${tabs.map(([k,n])=>`<button role="tab" data-tab="${k}" aria-selected="${V.tab===k}">${n}</button>`).join('')}</nav><section id="tab"></section></main>`;
+  bindTop();const b=$('#back');if(b)b.onclick=async()=>{await saveNow();Store.unsub();V.view='home';V.w=null;renderHome()};
+  document.querySelectorAll('[data-tab]').forEach(x=>x.onclick=()=>{V.tab=x.dataset.tab;document.querySelectorAll('[data-tab]').forEach(y=>y.setAttribute('aria-selected',y.dataset.tab===V.tab));renderTab()});
+  if(isPlanner())setStatus(V.pending?'Sin guardar':'Guardado');renderTab()}
+function renderTab(){const el=$('#tab');if(!el)return;({resumen:tabResumen,itinerario:tabItin,presupuesto:tabBudget,docs:tabDocs,datos:tabDatos})[V.tab](el)}
+
+/* Resumen */
+function tabResumen(el){const w=V.w,cpl=!isPlanner(),t=totals(w,cpl),ss=sunsetMin(w),sc=schedule(w),cer=(w.itinerary.blocks||[]).findIndex(b=>b.anchor),d=daysTo(w.date);
+  const ups=(w.budget.items||[]).filter(i=>(!cpl||i.visible!==false)&&i.status==='contratado'&&itemAmount(i)-itemPaid(i)>0).map(i=>({i,due:i.due||'9999-12-31',bal:itemAmount(i)-itemPaid(i)})).sort((a,b)=>a.due.localeCompare(b.due)).slice(0,6);
+  const key=(w.itinerary.blocks||[]).map((b,k)=>({b,k})).filter(x=>(!cpl||x.b.couple)&&/ceremonia|cóctel|coctel|cena|primer baile|fiesta|salida|llegada de invitados/i.test(x.b.t)).slice(0,7);
+  el.innerHTML=`<div class="cols2"><div class="card"><p class="eyebrow">Cuenta regresiva</p><div class="cdown"><span class="big">${d!=null&&d>=0?d:'—'}</span><span class="muted">${d==null?'Falta la fecha':d>=0?'días para la boda':'Boda realizada'}</span></div>
+    <dl class="kv" style="margin-top:14px"><dt>Fecha</dt><dd>${esc(fdate(w.date))}</dd><dt>Lugar</dt><dd>${esc(w.place||'Por definir')}</dd><dt>Destino</dt><dd>${esc(w.loc?.name||'—')}</dd><dt>Invitados</dt><dd>${w.guests||'—'}</dd>
+    <dt>Atardecer</dt><dd>${ss!=null?hm(ss):'Agrega fecha y destino'}</dd><dt>Ceremonia</dt><dd>${cer>=0&&ss!=null?hm(sc.out[cer].s):'—'}</dd></dl></div>
+   <div class="card"><p class="eyebrow">Momentos clave</p>${key.length?`<div class="upc">${key.map(x=>`<div><span>${esc(x.b.t)}</span><span class="money">${hm(sc.out[x.k].s)}</span></div>`).join('')}</div>`:'<p class="note">Arma el itinerario para verlo aquí.</p>'}</div>
+   <div class="card"><p class="eyebrow">Presupuesto</p><div class="stats"><div class="stat"><b>${money(t.target||t.est,w.currency)}</b><span>${t.target?'Presupuesto objetivo':'Estimado'}</span></div><div class="stat"><b>${money(t.comm,w.currency)}</b><span>Contratado</span></div><div class="stat"><b>${money(t.paid,w.currency)}</b><span>Pagado</span></div><div class="stat"><b>${money(t.due,w.currency)}</b><span>Por pagar</span></div></div>
+    ${t.target?`<div style="margin-top:12px"><div class="bar"><i style="width:${Math.min(100,t.proj/t.target*100)}%;${t.proj>t.target?'background:var(--bad)':''}"></i></div><p class="note">${t.proj>t.target?`<span class="pill bad">Proyectado ${money(t.proj-t.target,w.currency)} arriba del objetivo</span>`:`Proyectado: ${money(t.proj,w.currency)} (${Math.round(t.proj/t.target*100)}% del objetivo)`}</p></div>`:''}</div>
+   <div class="card"><p class="eyebrow">Próximos pagos</p>${ups.length?`<div class="upc">${ups.map(u=>`<div><span>${esc(u.i.concept||u.i.cat)}${u.i.vendor?` · <span class="muted">${esc(u.i.vendor)}</span>`:''}<br><small class="muted">${u.due==='9999-12-31'?'Sin fecha límite':'Antes del '+esc(fdate(u.due,{weekday:undefined,year:undefined}))}</small></span><span class="money">${money(u.bal,w.currency)}</span></div>`).join('')}</div>`:'<p class="note">No hay pagos pendientes de servicios contratados.</p>'}</div>
+   ${isPlanner()?`<div class="card" style="grid-column:1/-1"><p class="eyebrow">Notas internas</p><p class="note" style="margin:0 0 8px">Solo tú las ves. La pareja no tiene acceso.</p><textarea id="pNotes" placeholder="Acuerdos, gustos de la pareja, pendientes…">${esc(V.priv.notes||'')}</textarea></div>`:''}
+   ${!isPlanner()&&V.docs.length?`<div class="card"><p class="eyebrow">Documentos recientes</p><div class="upc">${V.docs.slice(0,4).map(x=>`<div><span>${esc(x.name)}</span><span class="muted">${esc((DOCK.find(k=>k[0]===x.kind)||DOCK[4])[1])}</span></div>`).join('')}</div></div>`:''}</div>`;
+  const pn=$('#pNotes');if(pn){let tt;pn.oninput=()=>{V.priv.notes=pn.value;clearTimeout(tt);tt=setTimeout(()=>Store.savePrivate(V.id,V.priv).catch(e=>toast(e.message)),700)}}}
+
+/* Itinerario */
+function tabItin(el){const w=V.w,it=w.itinerary,pl=isPlanner(),{out,ss}=schedule(w),bl=it.blocks;
+  const vis=bl.map((b,i)=>({b,i,t:out[i]})).filter(x=>pl||x.b.couple);
+  let rows='',sunDone=ss==null;
+  for(const x of vis){if(!sunDone&&x.t.s>=ss){rows+=sunRow(ss);sunDone=true}rows+=pl?blkEdit(x,w):blkRO(x)}
+  if(!sunDone)rows+=sunRow(ss);
+  const L=w.loc||{};
+  el.innerHTML=`<div class="card" style="margin-bottom:14px"><div class="row" style="justify-content:space-between;gap:14px">
+     <div><p class="eyebrow">Atardecer ${esc(L.name?'en '+L.name:'')}</p><div class="row"><span class="big" style="font-size:30px">${ss!=null?hm(ss):'—'}</span><span class="muted">${w.date?esc(fdate(w.date,{weekday:undefined})):'Agrega la fecha'}</span></div>
+     ${ss!=null?`<p class="note">Hora dorada para fotos: ${hm(ss-60)} a ${hm(ss)}. Cálculo astronómico, ± 3 min.</p>`:'<p class="note">Agrega fecha y destino en "Datos y acceso" para calcular el atardecer.</p>'}</div>
+     ${pl?`<div style="max-width:420px"><div class="row"><label for="lead" class="muted" style="font-size:13px">La ceremonia empieza</label><input type="number" id="lead" min="0" max="600" step="5" value="${it.lead??90}" style="width:80px"><span class="muted" style="font-size:13px">min antes del atardecer</span></div>
+       <label class="row" style="margin-top:6px;font-size:13px"><input type="checkbox" id="rnd" ${it.round!==false?'checked':''}> Redondear a 5 minutos</label></div>`:''}</div></div>
+   ${pl?`<div class="row" style="margin-bottom:10px;justify-content:space-between"><div class="row"><button class="btn sm primary" id="addB">+ Agregar momento</button><button class="btn sm" id="cpy">Copiar para WhatsApp</button></div><div class="row"><button class="btn sm" id="tplS">Guardar como mi plantilla</button><button class="btn sm" id="tplL">Usar mi plantilla</button></div></div>
+     <p class="note" style="margin:-4px 0 10px">El momento marcado como <b>ancla</b> se calcula desde el atardecer. Los de antes se acomodan hacia atrás y los de después, hacia adelante. Si un momento tiene hora fija, los siguientes empiezan desde ahí.</p>`:`<div class="row" style="margin-bottom:10px"><button class="btn sm" id="cpy">Copiar itinerario</button></div>`}
+   <div class="itin ${pl?'':'ro'}">${rows||'<p class="note">Aún no hay momentos en el itinerario.</p>'}</div>`;
+  if(pl){const ld=$('#lead');ld.oninput=()=>{it.lead=+ld.value||0;markDirty()};ld.onchange=()=>tabItin(el);$('#rnd').onchange=e=>{it.round=e.target.checked;markDirty();tabItin(el)};
+    $('#addB').onclick=()=>{bl.push({id:uid(),t:'Nuevo momento',dur:30,anchor:false,fixed:'',couple:true,note:''});markDirty();tabItin(el);const ins=el.querySelectorAll('.blk .ti input');ins[ins.length-1]?.select()};
+    $('#tplS').onclick=async()=>{Store.settings.template=bl.map(b=>({t:b.t,dur:b.dur,anchor:b.anchor,couple:b.couple,note:b.note}));try{await Store.saveSettings(Store.settings);toast('Plantilla guardada. Las bodas nuevas empezarán así.')}catch(e){toast(e.message)}};
+    $('#tplL').onclick=()=>{const tpl=(Store.settings.template||[]).length?Store.settings.template:DEFAULT_ITIN;confirmIn('#tplL','¿Reemplazar el itinerario con tu plantilla?',()=>{it.blocks=itinFrom(tpl);markDirty();tabItin(el)})};
+    el.querySelectorAll('[data-b]').forEach(row=>{const b=bl.find(x=>x.id===row.dataset.b);
+      row.querySelectorAll('[data-f]').forEach(inp=>{const f=inp.dataset.f;const ev=inp.type==='checkbox'||inp.tagName==='SELECT'?'change':'input';
+        inp.addEventListener(ev,()=>{let v=inp.type==='checkbox'?inp.checked:inp.type==='number'?Math.max(0,+inp.value||0):inp.value;if(f==='anchor'){bl.forEach(x=>x.anchor=false);v=true}b[f]=v;markDirty();if(ev==='change')tabItin(el)});
+        if(ev==='input'&&inp.type!=='text')inp.addEventListener('change',()=>tabItin(el))});
+      row.querySelectorAll('[data-a]').forEach(btn=>btn.onclick=()=>{const i=bl.indexOf(b),a=btn.dataset.a;
+        if(a==='up'&&i>0)[bl[i-1],bl[i]]=[bl[i],bl[i-1]];if(a==='dn'&&i<bl.length-1)[bl[i+1],bl[i]]=[bl[i],bl[i+1]];
+        if(a==='del'){confirmIn(btn,'¿Quitar este momento?',()=>{bl.splice(bl.indexOf(b),1);markDirty();tabItin(el)});return}markDirty();tabItin(el)})})}
+  $('#cpy').onclick=()=>copyText(itinText(w,pl))}
+function sunRow(ss){return ss==null?'':`<div class="sunrow"><span class="tm">${hm(ss)}</span><span>Atardecer</span></div>`}
+function blkRO(x){return `<div class="blk ${x.b.anchor?'anchor':''}"><div class="tm">${hm(x.t.s)}<small>${x.b.dur?'hasta '+hm(x.t.e):''}</small></div><div class="ti"><b>${esc(x.b.t)}</b>${x.b.note?`<div class="note">${esc(x.b.note)}</div>`:''}</div></div>`}
+function blkEdit(x,w){const b=x.b;return `<div class="blk ${b.anchor?'anchor':''} ${b.couple?'':'hidden-c'}" data-b="${b.id}"><div class="tm">${hm(x.t.s)}<small>a ${hm(x.t.e)}</small>${b.anchor?'<small style="color:var(--accent);font-weight:700">Ancla</small>':''}</div>
+  <div class="ti" style="min-width:0"><input type="text" data-f="t" value="${esc(b.t)}" aria-label="Momento"><div class="ex">
+   <label class="row" style="gap:4px">Dura <input type="number" data-f="dur" min="0" step="5" value="${b.dur}"> min</label>
+   <label class="row" style="gap:4px">Hora fija <input type="time" data-f="fixed" value="${esc(b.fixed||'')}"></label>
+   <label class="row" style="gap:4px"><input type="checkbox" data-f="couple" ${b.couple?'checked':''}> La pareja lo ve</label>
+   ${b.anchor?'':'<label class="row" style="gap:4px"><input type="radio" name="anc" data-f="anchor"> Ancla</label>'}</div>
+   <input type="text" data-f="note" value="${esc(b.note||'')}" placeholder="Notas: proveedor, lugar, responsable…" style="margin-top:6px;font-size:13px"></div>
+  <div class="ctl"><button class="btn sm" data-a="up" aria-label="Subir">↑</button><button class="btn sm" data-a="dn" aria-label="Bajar">↓</button><button class="btn sm danger" data-a="del" aria-label="Quitar">✕</button></div></div>`}
+function itinText(w,pl){const {out,ss}=schedule(w);let s=`*Itinerario · ${w.couple||'Boda'}*\n${fdate(w.date)}${w.place?'\n'+w.place:''}\n\n`;
+  w.itinerary.blocks.forEach((b,i)=>{if(!pl&&!b.couple)return;s+=`${hm(out[i].s)}  ${b.t}${b.note?' ('+b.note+')':''}\n`});if(ss!=null)s+=`\nAtardecer: ${hm(ss)}`;s+='\n\nMemories Weddings & Events';return s}
+async function copyText(t){try{await navigator.clipboard.writeText(t);toast('Copiado. Ya lo puedes pegar en WhatsApp.')}catch(e){modal(`<h2>Copiar</h2><p class="note">Selecciona y copia el texto.</p><textarea style="min-height:260px;margin-top:10px" readonly>${esc(t)}</textarea><div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" id="mX">Cerrar</button></div>`);$('#mX').onclick=closeModal;$('#sheet textarea').select()}}
+function confirmIn(btn,msg,yes){const b=typeof btn==='string'?$(btn):btn;modal(`<h2 style="font-size:20px">${esc(msg)}</h2><div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn" id="mX">Cancelar</button><button class="btn primary" id="mOk">Sí</button></div>`);$('#mX').onclick=closeModal;$('#mOk').onclick=()=>{closeModal();yes()}}
+
+/* Presupuesto */
+function tabBudget(el){const w=V.w,pl=isPlanner(),B=w.budget,cur=w.currency||'MXN',t=totals(w,!pl);
+  const items=B.items.filter(i=>pl||i.visible!==false);const cats=[...new Set([...CATS.filter(c=>items.some(i=>i.cat===c)),...items.map(i=>i.cat)])];
+  el.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between;gap:14px;align-items:flex-start"><div class="stats" style="flex:1 1 520px">
+     <div class="stat"><b>${money(t.target,cur)}</b><span>Objetivo</span></div><div class="stat"><b>${money(t.proj,cur)}</b><span>Proyectado</span></div><div class="stat"><b>${money(t.comm,cur)}</b><span>Contratado</span></div><div class="stat"><b>${money(t.paid,cur)}</b><span>Pagado</span></div><div class="stat"><b>${money(t.due,cur)}</b><span>Por pagar</span></div></div>
+     ${pl?`<div style="min-width:200px"><div class="field"><label for="tgt">Presupuesto objetivo</label><input type="number" id="tgt" min="0" step="1000" value="${B.target||''}" placeholder="0"></div><div class="field"><label for="curr">Moneda</label><select id="curr"><option value="MXN" ${cur==='MXN'?'selected':''}>Pesos (MXN)</option><option value="USD" ${cur==='USD'?'selected':''}>Dólares (USD)</option></select></div></div>`:''}</div>
+     ${t.target?`<div class="bar" style="margin-top:6px"><i style="width:${Math.min(100,t.proj/t.target*100)}%;${t.proj>t.target?'background:var(--bad)':''}"></i></div><p class="note">${t.proj>t.target?`<span class="pill bad">${money(t.proj-t.target,cur)} arriba del objetivo</span>`:`Quedan ${money(t.target-t.proj,cur)} disponibles del objetivo`}</p>`:''}
+     <p class="note">Proyectado usa la cotización cuando ya la hay y el estimado cuando todavía no. Se actualiza solo con cada cambio.</p></div>
+   ${pl?`<div class="row" style="margin-top:14px"><select id="newCat" style="width:auto">${CATS.map(c=>`<option>${esc(c)}</option>`).join('')}</select><button class="btn primary sm" id="addI">+ Agregar concepto</button><button class="btn sm" id="addBase">Agregar lista básica</button></div>`:''}
+   ${items.length?`<div class="bhead" style="margin-top:16px"><span>Concepto</span><span>Proveedor</span>${pl?'<span style="text-align:right">Estimado</span><span style="text-align:right">Cotización</span><span>Estado</span><span></span>':'<span style="text-align:right">Monto</span><span style="text-align:right">Pagado</span>'}</div>`:''}
+   ${cats.map(c=>{const its=items.filter(i=>i.cat===c),sum=its.reduce((a,i)=>a+itemAmount(i),0);return `<div class="bcat"><h3>${esc(c)}<small>${money(sum,cur)}</small></h3>${its.map(i=>pl?bItemEdit(i,w):bItemRO(i,w)).join('')}</div>`}).join('')}
+   ${!items.length?`<div class="card empty" style="margin-top:14px"><h2>Sin conceptos todavía</h2><p>${pl?'Agrega conceptos uno por uno o usa la lista básica de una boda.':'Tu planner aún no comparte el presupuesto.'}</p></div>`:''}`;
+  if(!pl)return;
+  const tg=$('#tgt');tg.oninput=()=>{B.target=+tg.value||0;markDirty()};tg.onchange=()=>tabBudget(el);$('#curr').onchange=e=>{w.currency=e.target.value;markDirty();tabBudget(el)};
+  $('#addI').onclick=()=>{const i={id:uid(),cat:$('#newCat').value,concept:'',vendor:'',est:0,quote:0,status:'estimado',payments:[],due:'',visible:true,note:'',doc:''};B.items.push(i);V.openItems.add(i.id);markDirty();tabBudget(el);el.querySelector(`[data-i="${i.id}"] [data-f="concept"]`)?.focus()};
+  $('#addBase').onclick=()=>{const base=['Lugar','Banquete','Bebidas y barra','Fotografía','Video','Música y DJ','Flores y decoración','Mobiliario y mantelería','Pastel y postres','Belleza','Invitaciones y papelería','Ceremonia','Honorarios Memories'];
+    let n=0;for(const c of base)if(!B.items.some(i=>i.cat===c)){B.items.push({id:uid(),cat:c,concept:c,vendor:'',est:0,quote:0,status:'estimado',payments:[],due:'',visible:c!=='Honorarios Memories'||true,note:'',doc:''});n++}markDirty();tabBudget(el);toast(n?`Agregué ${n} conceptos. Ponles el estimado.`:'Ya tienes todos los conceptos básicos.')};
+  el.querySelectorAll('[data-i]').forEach(row=>{const i=B.items.find(x=>x.id===row.dataset.i);
+    row.querySelectorAll('[data-f]').forEach(inp=>{const f=inp.dataset.f,ev=inp.type==='checkbox'||inp.tagName==='SELECT'?'change':'input';
+      inp.addEventListener(ev,()=>{i[f]=inp.type==='checkbox'?inp.checked:inp.type==='number'?(+inp.value||0):inp.value;markDirty();if(ev==='change')tabBudget(el)});
+      if(ev==='input'&&inp.type==='number')inp.addEventListener('change',()=>tabBudget(el))});
+    row.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{const a=b.dataset.a;
+      if(a==='tog'){V.openItems.has(i.id)?V.openItems.delete(i.id):V.openItems.add(i.id);tabBudget(el)}
+      if(a==='del')confirmIn(b,'¿Borrar este concepto?',()=>{B.items.splice(B.items.indexOf(i),1);markDirty();tabBudget(el)});
+      if(a==='pay'){i.payments=i.payments||[];i.payments.push({id:uid(),date:new Date().toISOString().slice(0,10),amount:Math.max(0,itemAmount(i)-itemPaid(i)),note:''});markDirty();tabBudget(el)}});
+    row.querySelectorAll('[data-p]').forEach(pr=>{const p=i.payments.find(x=>x.id===pr.dataset.p);pr.querySelectorAll('[data-pf]').forEach(inp=>{inp.addEventListener('input',()=>{p[inp.dataset.pf]=inp.type==='number'?(+inp.value||0):inp.value;markDirty()});inp.addEventListener('change',()=>tabBudget(el))});
+      pr.querySelector('[data-pd]').onclick=()=>{i.payments.splice(i.payments.indexOf(p),1);markDirty();tabBudget(el)}})})}
+function bItemEdit(i,w){const cur=w.currency,open=V.openItems.has(i.id),paid=itemPaid(i),bal=itemAmount(i)-paid,docs=V.docs;
+  return `<div class="bitem" data-i="${i.id}"><div class="bsum"><input type="text" class="c-concept" data-f="concept" value="${esc(i.concept)}" placeholder="Concepto" aria-label="Concepto"><input type="text" data-f="vendor" value="${esc(i.vendor)}" placeholder="Proveedor" aria-label="Proveedor">
+   <label class="ml"><span>Estimado</span><input type="number" class="money" data-f="est" min="0" step="100" value="${i.est||''}" placeholder="0" aria-label="Estimado"></label><label class="ml"><span>Cotización</span><input type="number" class="money" data-f="quote" min="0" step="100" value="${i.quote||''}" placeholder="0" aria-label="Cotización"></label>
+   <label class="ml"><span>Estado</span><select data-f="status" aria-label="Estado">${STATUS.map(([v,n])=>`<option value="${v}" ${i.status===v?'selected':''}>${n}</option>`).join('')}</select></label><button class="btn sm tg" data-a="tog" aria-expanded="${open}" aria-label="Más detalles"><span class="tgl">${open?'Cerrar':'Pagos y detalles'}</span><span class="tgs">${open?'−':'+'}</span></button></div>
+   ${open?`<div class="bdet"><div class="f2"><div class="field"><label>Fecha límite de pago</label><input type="date" data-f="due" value="${esc(i.due||'')}"></div>
+     <div class="field"><label>Cotización o contrato</label><select data-f="doc"><option value="">Sin documento</option>${docs.map(d=>`<option value="${d.id}" ${i.doc===d.id?'selected':''}>${esc(d.name)}</option>`).join('')}</select></div>
+     <div class="field"><label>Categoría</label><select data-f="cat">${[...new Set([...CATS,i.cat])].map(c=>`<option ${c===i.cat?'selected':''}>${esc(c)}</option>`).join('')}</select></div></div>
+     <label class="row" style="font-size:13px"><input type="checkbox" data-f="visible" ${i.visible!==false?'checked':''}> La pareja ve este concepto</label>
+     <input type="text" data-f="note" value="${esc(i.note||'')}" placeholder="Notas: qué incluye, condiciones, anticipo…">
+     <div><div class="row" style="justify-content:space-between"><b style="font-size:13px">Pagos</b><span class="note" style="margin:0">Pagado ${money(paid,cur)} · Saldo <b>${money(bal,cur)}</b></span></div>
+     <div class="pays" style="margin-top:6px">${(i.payments||[]).map(p=>`<div class="pay" data-p="${p.id}"><input type="date" data-pf="date" value="${esc(p.date||'')}" aria-label="Fecha"><input type="number" class="money" data-pf="amount" min="0" value="${p.amount||''}" aria-label="Monto"><input type="text" data-pf="note" value="${esc(p.note||'')}" placeholder="Anticipo, transferencia…" aria-label="Nota"><button class="btn sm danger" data-pd aria-label="Quitar pago">✕</button></div>`).join('')}</div>
+     <div class="row" style="margin-top:6px;justify-content:space-between"><button class="btn sm" data-a="pay">+ Registrar pago</button><button class="btn sm danger" data-a="del">Borrar concepto</button></div></div></div>`:''}</div>`}
+function bItemRO(i,w){const cur=w.currency,paid=itemPaid(i);return `<div class="bitem"><div class="bsum"><span class="c-concept"><b>${esc(i.concept||i.cat)}</b>${i.status==='contratado'?' <span class="pill ok">Contratado</span>':i.status==='cotizado'?' <span class="pill gold">Cotizado</span>':''}${i.note?`<br><small class="muted">${esc(i.note)}</small>`:''}</span><span class="muted">${esc(i.vendor||'')}</span>
+  <span class="money lbl-m" data-l="Monto">${money(itemAmount(i),cur)}</span><span class="money lbl-m" data-l="Pagado">${money(paid,cur)}</span></div></div>`}
+
+/* Documentos */
+function tabDocs(el){const pl=isPlanner();
+  el.innerHTML=`${pl?`<div class="drop" id="drop"><p style="margin:0 0 8px"><b>Arrastra aquí contratos, cotizaciones, facturas o diseños</b></p><label class="btn primary" for="fileIn" style="cursor:pointer">Subir archivos</label><input type="file" id="fileIn" multiple hidden><p class="note">PDF, fotos, Word o Excel. Tú decides cuáles ve la pareja.</p></div>`:''}
+   <div class="docs" style="margin-top:14px">${V.docs.length?V.docs.map(d=>docRow(d,pl)).join(''):`<div class="card empty"><h2>Sin documentos</h2><p>${pl?'Sube el primer archivo de esta boda.':'Aquí aparecerán los documentos que comparta tu planner.'}</p></div>`}</div>`;
+  if(pl){const dr=$('#drop'),fi=$('#fileIn');fi.onchange=()=>{upload([...fi.files]);fi.value=''};
+    ['dragover','dragenter'].forEach(e=>dr.addEventListener(e,ev=>{ev.preventDefault();dr.classList.add('on')}));['dragleave','drop'].forEach(e=>dr.addEventListener(e,ev=>{ev.preventDefault();dr.classList.remove('on')}));dr.addEventListener('drop',ev=>upload([...ev.dataTransfer.files]))}
+  el.querySelectorAll('[data-d]').forEach(row=>{const d=V.docs.find(x=>x.id===row.dataset.d);
+    row.querySelector('[data-open]').onclick=async()=>{const win=DEMO?null:window.open('','_blank');try{const u=await Store.docUrl(d);if(win)win.location=u;else{const a=document.createElement('a');a.href=u;a.download=d.name;a.target='_blank';document.body.appendChild(a);a.click();a.remove()}}catch(e){if(win)win.close();toast('No se pudo abrir: '+e.message)}};
+    row.querySelectorAll('[data-df]').forEach(inp=>inp.onchange=async()=>{const patch={[inp.dataset.df]:inp.type==='checkbox'?inp.checked:inp.value};try{await Store.updateDoc(d,patch);Object.assign(d,patch)}catch(e){toast(e.message)}});
+    const del=row.querySelector('[data-del]');if(del)del.onclick=()=>confirmIn(del,'¿Borrar "'+d.name+'"?',async()=>{try{await Store.deleteDoc(d);V.docs=V.docs.filter(x=>x!==d);tabDocs(el)}catch(e){toast(e.message)}})})}
+function docRow(d,pl){const ext=(d.name.split('.').pop()||'').slice(0,4);return `<div class="doc" data-d="${d.id}"><div class="ic">${esc(ext)}</div><div style="min-width:0"><div class="nm">${esc(d.name)}</div>
+  <div class="meta">${pl?`<select data-df="kind" style="width:auto;padding:3px 6px;font-size:12px" aria-label="Tipo">${DOCK.map(([v,n])=>`<option value="${v}" ${d.kind===v?'selected':''}>${n}</option>`).join('')}</select><label class="row" style="gap:4px"><input type="checkbox" data-df="visible" ${d.visible?'checked':''}> La pareja lo ve</label>`:`<span>${esc((DOCK.find(k=>k[0]===d.kind)||DOCK[4])[1])}</span>`}<span>${new Date(d.created_at).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'})}</span>${d.size?`<span>${(d.size/1048576).toFixed(1)} MB</span>`:''}</div></div>
+  <div class="row"><button class="btn sm" data-open>Abrir</button>${pl?'<button class="btn sm danger" data-del aria-label="Borrar">✕</button>':''}</div></div>`}
+async function upload(files){if(!files.length)return;let ok=0;for(const f of files){toast('Subiendo '+f.name+'…');try{const kind=/cotiz|quote|presupuesto/i.test(f.name)?'cotizacion':/contrat/i.test(f.name)?'contrato':/factur|recibo|invoice/i.test(f.name)?'factura':'otro';const d=await Store.uploadDoc(V.id,f,{kind,visible:kind!=='cotizacion'});V.docs.unshift(d);ok++}catch(e){toast('No se pudo subir '+f.name+': '+(e.message||e))}}
+  if(ok)toast(ok===1?'Archivo subido.':ok+' archivos subidos.');if(V.tab==='docs')tabDocs($('#tab'))}
+
+/* Datos y acceso */
+function tabDatos(el){const w=V.w,L=w.loc||{},li=LOCS.findIndex(l=>l[0]===L.name);const link=location.origin+location.pathname;
+  el.innerHTML=`<div class="cols2"><div class="card"><h3 style="margin-bottom:12px">Datos de la boda</h3>
+    <div class="field"><label for="dC">Pareja</label><input type="text" id="dC" data-w="couple" value="${esc(w.couple||'')}"></div>
+    <div class="f2"><div class="field"><label for="dD">Fecha</label><input type="date" id="dD" data-w="date" value="${esc(w.date||'')}"></div><div class="field"><label for="dG">Invitados</label><input type="number" id="dG" data-w="guests" min="0" value="${w.guests||''}"></div></div>
+    <div class="field"><label for="dP">Lugar (salón, hacienda, playa…)</label><input type="text" id="dP" data-w="place" value="${esc(w.place||'')}" placeholder="Hacienda Cerritos"></div>
+    <div class="field"><label for="dL">Destino para calcular el atardecer</label><select id="dL">${LOCS.map((l,i)=>`<option value="${i}" ${i===li?'selected':''}>${esc(l[0])}</option>`).join('')}<option value="x" ${li<0?'selected':''}>Otro lugar (coordenadas)</option></select></div>
+    <div id="custLoc" ${li<0?'':'hidden'}><div class="field"><label for="dXY">Coordenadas (de Google Maps: clic derecho sobre el lugar y copia los números)</label><input type="text" id="dXY" value="${L.lat!=null&&li<0?L.lat+', '+L.lng:''}" placeholder="22.8905, -109.9167"></div>
+      <div class="field"><label for="dTZ">Zona horaria</label><select id="dTZ">${TZS.map(([v,n])=>`<option value="${v}" ${L.tz===v?'selected':''}>${n}</option>`).join('')}</select></div></div>
+    <div class="field"><label for="dS">Estilo o tema</label><input type="text" id="dS" data-w="style" value="${esc(w.style||'')}" placeholder="Boho en la playa, verde salvia y blanco"></div>
+    <div class="row" style="justify-content:space-between;margin-top:8px"><span class="note" style="margin:0">Se guarda solo.</span><button class="btn sm danger" id="delW">Borrar boda</button></div></div>
+   <div class="card"><h3 style="margin-bottom:6px">Acceso de la pareja</h3><p class="note" style="margin:0 0 12px">Dales acceso con su correo y una contraseña. Con eso entran y ven esta boda: resumen, itinerario, presupuesto y los documentos que marques. Todo se actualiza en cuanto tú cambias algo.</p>
+    <div class="grid" style="gap:6px">${(w.couple_emails||[]).map(e=>`<div class="row" style="justify-content:space-between;border:1px solid var(--line);border-radius:10px;padding:8px 10px"><span>${esc(e)}</span><button class="btn sm danger" data-rm="${esc(e)}">Quitar</button></div>`).join('')||'<p class="note" style="margin:0">Todavía no hay correos.</p>'}</div>
+    <div class="f2" style="margin-top:10px"><div class="field"><label for="ce">Correo</label><input type="email" id="ce" placeholder="novia@correo.com"></div><div class="field"><label for="cp">Contraseña para la pareja</label><input type="text" id="cp" value="${esc(genPw(w))}"></div></div><button class="btn primary" id="addCe">Dar acceso</button>
+    <p class="note">Si ese correo ya tenía cuenta, conserva su contraseña de antes.</p>
+    <hr style="border:0;border-top:1px solid var(--line);margin:16px 0"><p class="eyebrow">Mensaje para la pareja</p><textarea id="inv" readonly style="min-height:120px">${esc(inviteText(w,link))}</textarea><button class="btn sm" id="cpInv" style="margin-top:6px">Copiar mensaje</button>
+    ${DEMO?'<p class="note">Modo demo: para ver lo que ve la pareja, toca "Pareja" arriba.</p>':''}</div></div>`;
+  el.querySelectorAll('[data-w]').forEach(inp=>{inp.addEventListener('input',()=>{const k=inp.dataset.w;w[k]=inp.type==='number'?(+inp.value||0):inp.value||(k==='date'?null:'');markDirty()});inp.addEventListener('change',()=>renderWeddingHead())});
+  const setLoc=()=>{const v=$('#dL').value;$('#custLoc').hidden=v!=='x';if(v!=='x'){const l=LOCS[+v];w.loc={name:l[0],lat:l[1],lng:l[2],tz:l[3]}}else{const m=($('#dXY').value||'').match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);w.loc={name:w.place||'Ubicación personalizada',lat:m?+m[1]:null,lng:m?+m[2]:null,tz:$('#dTZ').value}}markDirty();renderWeddingHead()};
+  $('#dL').onchange=setLoc;$('#dXY').onchange=setLoc;$('#dTZ').onchange=setLoc;
+  $('#addCe').onclick=async()=>{const e=($('#ce').value||'').trim().toLowerCase(),pw=($('#cp').value||'').trim();if(!/^\S+@\S+\.\S+$/.test(e)){toast('Escribe un correo válido.');return}if(pw.length<8){toast('La contraseña debe tener al menos 8 caracteres.');return}
+    const b=$('#addCe');b.disabled=true;try{const isNew=await Store.createCouple(e,pw);V.cred={email:e,pw:isNew===false?'':pw};if(!w.couple_emails.includes(e))w.couple_emails.push(e);if(DEMO)LS.set('mw.demoCouple',w.id);markDirty();await saveNow();tabDatos(el);toast(isNew===false?'Ese correo ya tenía cuenta: entra con su contraseña de antes.':'Listo. Copia el mensaje y mándaselo a la pareja.')}catch(err){b.disabled=false;toast('No se pudo dar acceso: '+(err.message||err))}};
+  el.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{w.couple_emails=w.couple_emails.filter(x=>x!==b.dataset.rm);markDirty();tabDatos(el)});
+  $('#cpInv').onclick=()=>copyText($('#inv').value);
+  $('#delW').onclick=()=>confirmIn('#delW','¿Borrar esta boda y todos sus documentos? No se puede deshacer.',async()=>{try{clearTimeout(saveT);V.pending=false;await Store.deleteWedding(w.id);Store.unsub();V.view='home';V.w=null;renderHome();toast('Boda borrada.')}catch(e){toast(e.message)}})}
+function inviteText(w,link){const c=V.cred;return `¡Hola${w.couple?' '+w.couple:''}! 🤍\nYa pueden ver todos los detalles de su boda en su portal de Memories: itinerario, presupuesto y documentos.\n\nEntren aquí: ${link}\nToquen "Soy novio o novia" y escriban:\nCorreo: ${c?.email||(w.couple_emails[0]||'su correo')}\nContraseña: ${c?.pw||'la que les compartimos'}\n\nCualquier cambio que hagamos lo verán al momento.\nMemories Weddings & Events`}
+function genPw(w){const base=(w.couple||'boda').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z]+/g,'-').replace(/^-|-$/g,'').slice(0,18)||'boda';return base+'-'+Math.floor(1000+Math.random()*9000)}
+function renderWeddingHead(){const h=$('.whead');if(!h)return;const w=V.w,d=daysTo(w.date);h.querySelector('.eyebrow').textContent=fdate(w.date);h.querySelector('h1').textContent=w.couple||'Boda sin nombre';
+  const pills=h.querySelector('.row:last-child');if(pills)pills.innerHTML=`${d!=null?`<span class="pill ${d<=30&&d>=0?'warn':'gold'}">${daysLbl(d)}</span>`:''}<span class="pill">${esc(w.place||w.loc?.name||'Lugar por definir')}</span>`}
+
+/* ---------- Acceso ---------- */
+function renderLogin(){$('#app').innerHTML=`<main class="login"><p class="eyebrow">Weddings &amp; Events</p><h1>Memories</h1><p class="muted" style="margin:6px 0 18px">Portal de bodas</p>
+  <div class="card"><div class="seg" role="group" style="margin-bottom:16px"><button data-lm="couple" aria-pressed="true">Soy novio o novia</button><button data-lm="planner" aria-pressed="false">Soy la planner</button></div><div id="lf"></div></div></main>`;
+  const draw=m=>{document.querySelectorAll('[data-lm]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.lm===m));const f=$('#lf');
+    if(m==='couple'){f.innerHTML=`<div class="field"><label for="le">Tu correo</label><input type="email" id="le" autocomplete="email" placeholder="tu@correo.com"></div><div class="field"><label for="lp">Contraseña</label><input type="password" id="lp" autocomplete="current-password"></div><button class="btn primary" id="lgo" style="width:100%;justify-content:center">Entrar a mi boda</button><p class="note">Usa el correo y la contraseña que te dio tu wedding planner.</p>`;
+      const go=async()=>{const e=$('#le').value.trim(),p=$('#lp').value;if(!e||!p)return toast('Escribe tu correo y contraseña.');try{await Store.signIn(e,p)}catch(err){toast(/invalid/i.test(err.message)?'Correo o contraseña incorrectos.':err.message)}};$('#lgo').onclick=go;$('#lp').onkeydown=ev=>{if(ev.key==='Enter')go()}}
+    else{f.innerHTML=`<div class="field"><label for="le">Correo</label><input type="email" id="le" autocomplete="email"></div><div class="field"><label for="lp">Contraseña</label><input type="password" id="lp" autocomplete="current-password"></div>
+      <div class="row"><button class="btn primary" id="lin">Entrar</button><button class="btn" id="lup">Crear cuenta</button></div><p class="note">La primera vez toca "Crear cuenta".</p>`;
+      $('#lin').onclick=async()=>{try{await Store.signIn($('#le').value.trim(),$('#lp').value)}catch(e){toast(e.message==='Invalid login credentials'?'Correo o contraseña incorrectos.':e.message)}};
+      $('#lup').onclick=async()=>{const e=$('#le').value.trim(),p=$('#lp').value;if(p.length<8)return toast('La contraseña debe tener al menos 8 caracteres.');LS.set('mw.wantPlanner',e.toLowerCase());try{const r=await Store.signUp(e,p);if(r.session){await Store.becomePlanner();route()}else{LS.set('mw.wantPlanner',e.toLowerCase());f.innerHTML=`<h3>Confirma tu correo</h3><p class="note">Te mandamos un correo a <b>${esc(e)}</b>. Ábrelo y después entra aquí con tu contraseña.</p>`}}catch(err){toast(err.message)}}}};
+  document.querySelectorAll('[data-lm]').forEach(b=>b.onclick=()=>draw(b.dataset.lm));draw('couple')}
+
+/* ---------- Inicio ---------- */
+(async()=>{$('#app').innerHTML='<p class="empty">Cargando…</p>';
+  try{await Store.init()}catch(e){$('#app').innerHTML=`<div class="login"><div class="card"><h2>No se pudo conectar</h2><p class="note">${esc(e.message)}. Revisa tu conexión a internet y recarga la página.</p></div></div>`;return}
+  if(!DEMO&&Store.user&&Store.role==='couple'&&LS.get('mw.wantPlanner')===Store.email()){await Store.becomePlanner().catch(()=>{});LS.set('mw.wantPlanner','')}
+  if(DEMO&&!Store.demo().weddings.length)seedDemo();
+  route()})();
+function seedDemo(){const d=Store.demo();const id=uid();const y=new Date().getFullYear()+1;
+  d.weddings.push({id,couple:'Ana & Luis (ejemplo)',date:`${y}-03-14`,guests:120,place:'Hacienda de ejemplo, Todos Santos',loc:{name:'Todos Santos, BCS',lat:23.4464,lng:-110.2265,tz:'America/Mazatlan'},currency:'MXN',couple_emails:['demo@memories.mx'],style:'Boho en la playa',
+    itinerary:{lead:90,round:true,blocks:itinFrom(DEFAULT_ITIN)},
+    budget:{target:650000,items:[
+      {id:uid(),cat:'Lugar',concept:'Renta de hacienda',vendor:'Hacienda de ejemplo',est:120000,quote:135000,status:'contratado',payments:[{id:uid(),date:`${y-1}-11-02`,amount:67500,note:'Anticipo 50%'}],due:`${y}-02-14`,visible:true,note:'Incluye jardín y salón de 6 pm a 2 am'},
+      {id:uid(),cat:'Banquete',concept:'Cena de 3 tiempos',vendor:'Banquetes ejemplo',est:180000,quote:192000,status:'cotizado',payments:[],due:'',visible:true,note:'$1,600 por persona'},
+      {id:uid(),cat:'Fotografía',concept:'Foto y video',vendor:'Estudio ejemplo',est:65000,quote:58000,status:'contratado',payments:[{id:uid(),date:`${y-1}-12-10`,amount:20000,note:'Anticipo'}],due:`${y}-03-01`,visible:true,note:''},
+      {id:uid(),cat:'Flores y decoración',concept:'Centros de mesa y arco',vendor:'',est:85000,quote:0,status:'estimado',payments:[],due:'',visible:true,note:''},
+      {id:uid(),cat:'Música y DJ',concept:'DJ y audio',vendor:'',est:35000,quote:0,status:'estimado',payments:[],due:'',visible:true,note:''},
+      {id:uid(),cat:'Honorarios Memories',concept:'Coordinación integral',vendor:'Memories',est:60000,quote:60000,status:'contratado',payments:[{id:uid(),date:`${y-1}-10-15`,amount:30000,note:'Anticipo'}],due:`${y}-03-01`,visible:true,note:''}]},notes:''});
+  d.priv[id]={notes:'Ejemplo: a la novia no le gustan las rosas rojas. Confirmar menú vegetariano para 8 invitados.'};Store.demoSave(d);LS.set('mw.demoCouple',id)}
+})();
+</script>
+
+</body>
+</html>
