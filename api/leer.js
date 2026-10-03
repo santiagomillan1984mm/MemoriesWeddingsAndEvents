@@ -96,13 +96,13 @@ module.exports = async (req, res) => {
       else return send(400, { error: 'Formato no compatible. Sube PDF, foto (JPG o PNG), Word o Excel.' });
     } else return send(400, { error: 'No llegó ningún archivo.' });
   } catch (e) { return send(400, { error: 'No se pudo preparar el archivo: ' + e.message }); }
-  content.push({ type: 'text', text: prompt(mode, body.context) });
+  content.push({ type: 'text', text: prompt(mode, body.context) + '\n\nResponde únicamente llamando a la herramienta ' + TOOLS[mode].name + '.' });
 
   const tool = TOOLS[mode];
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({ model: MODEL, max_tokens: 4096, tools: [tool], tool_choice: { type: 'tool', name: tool.name }, messages: [{ role: 'user', content }] })
+    body: JSON.stringify({ model: MODEL, max_tokens: 4096, tools: [tool], tool_choice: { type: 'auto' }, messages: [{ role: 'user', content }] })
   });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) {
@@ -110,7 +110,8 @@ module.exports = async (req, res) => {
     if (/credit|billing/i.test(msg)) return send(402, { error: 'Tu cuenta de Anthropic no tiene saldo. Agrega crédito en console.anthropic.com.' });
     return send(502, { error: 'La IA no pudo leer el archivo: ' + msg });
   }
-  const out = (j.content || []).find(b => b.type === 'tool_use');
+  let out = (j.content || []).find(b => b.type === 'tool_use');
+  if (!out) { const txt = (j.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n'); const m = txt.match(/\{[\s\S]*\}/); if (m) { try { out = { input: JSON.parse(m[0]) }; } catch (e) {} } }
   if (!out) return send(502, { error: 'La IA no devolvió datos. Intenta de nuevo o captura a mano.' });
   return send(200, { mode, data: out.input });
 };
