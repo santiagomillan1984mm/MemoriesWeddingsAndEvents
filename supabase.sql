@@ -100,3 +100,28 @@ do $$ begin
 end $$;
 
 grant select, insert, update, delete on public.weddings, public.wedding_private, public.documents, public.planner_settings to authenticated;
+
+-- ===== Fase 2: cotizaciones =====
+create table if not exists public.quotes (
+  id uuid primary key default gen_random_uuid(),
+  wedding_id uuid not null references public.weddings(id) on delete cascade,
+  doc_id uuid references public.documents(id) on delete set null,
+  status text default 'revisar',
+  vendor text default '',
+  category text default 'Otros',
+  currency text default 'MXN',
+  total numeric default 0,
+  data jsonb default '{}'::jsonb,
+  budget_item_id text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+alter table public.quotes enable row level security;
+drop policy if exists "planner cotizaciones" on public.quotes;
+create policy "planner cotizaciones" on public.quotes for all to authenticated
+  using (exists (select 1 from public.weddings w where w.id = wedding_id and w.planner_id = auth.uid()))
+  with check (exists (select 1 from public.weddings w where w.id = wedding_id and w.planner_id = auth.uid()));
+grant select, insert, update, delete on public.quotes to authenticated;
+do $$ begin
+  begin alter publication supabase_realtime add table public.quotes; exception when duplicate_object then null; end;
+end $$;

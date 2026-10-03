@@ -145,6 +145,24 @@ input[readonly],input:disabled,select:disabled{opacity:.75}
 .login .card{padding:24px}
 .login h1{font-size:34px;color:var(--accent)}
 .status{font-size:12px;color:var(--muted);min-width:70px;text-align:right}
+.qsec{margin-top:22px}.qsec>summary{cursor:pointer;list-style:none}.qsec>summary::-webkit-details-marker{display:none}
+.qcat{font-size:15px;color:var(--muted);margin:14px 0 6px}
+.qlist{display:grid;gap:8px}
+.qcard{display:flex;gap:12px;justify-content:space-between;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.qright{display:flex;align-items:center;gap:10px;flex:none}
+.cmp{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:10px}
+.cmpc{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.sheet.wide{width:min(1180px,100%);height:min(92vh,100%)}
+.rv{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;height:calc(100% - 60px);min-height:0}
+.rvp{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;overflow:auto;min-height:300px;display:flex;flex-direction:column}
+.rvf{overflow:auto;padding-right:4px;min-width:0}
+.qitems{display:grid;gap:6px}
+.qit{display:grid;grid-template-columns:minmax(0,2.4fr) 64px 92px 104px 30px;gap:6px;align-items:center;border-radius:8px}
+.qit input{padding:5px 7px}
+.doubt input,.doubt select,.qit.doubt{background:color-mix(in srgb,var(--warn) 16%,var(--surface-2))!important;border-color:var(--warn)!important}
+.field.doubt>label::after{content:' · confirmar';color:var(--warn)}
+.appr{border-top:1px solid var(--line);margin-top:8px;padding-top:12px;position:sticky;bottom:0;background:var(--surface)}
+@media (max-width:860px){.rv{grid-template-columns:1fr;height:auto}.rvp{max-height:45vh}.sheet.wide{height:auto}.qit{grid-template-columns:1fr 1fr}.qit input[data-if="concept"]{grid-column:1/-1}}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:13px;z-index:50;max-width:calc(100% - 32px)}
 .modal{position:fixed;inset:0;background:rgba(10,15,12,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:40}
 .sheet{background:var(--surface);border-radius:14px;padding:20px;width:min(520px,100%);max-height:100%;overflow:auto}
@@ -251,9 +269,17 @@ const Store={sb:null,user:null,role:null,settings:{},chan:null,
   async updateDoc(doc,patch){if(DEMO){const d=this.demo();const x=d.docs.find(y=>y.id===doc.id);Object.assign(x,patch);this.demoSave(d);return}const {error}=await this.sb.from('documents').update(patch).eq('id',doc.id);if(error)throw error},
   async deleteDoc(doc){if(DEMO){const d=this.demo();d.docs=d.docs.filter(y=>y.id!==doc.id);this.demoSave(d);return}await this.sb.storage.from('docs').remove([doc.path]);const {error}=await this.sb.from('documents').delete().eq('id',doc.id);if(error)throw error},
   async docUrl(doc){if(DEMO)return doc.path;const {data,error}=await this.sb.storage.from('docs').createSignedUrl(doc.path,3600);if(error)throw error;return data.signedUrl},
+  async listQuotes(id){if(DEMO)return this.demo().quotes?.filter(q=>q.wedding_id===id)||[];const {data,error}=await this.sb.from('quotes').select('*').eq('wedding_id',id).order('created_at',{ascending:false});if(error)throw error;return data},
+  async saveQuote(q){q.updated_at=new Date().toISOString();if(DEMO){const d=this.demo();d.quotes=d.quotes||[];const i=d.quotes.findIndex(x=>x.id===q.id);if(i<0)d.quotes.unshift(clone(q));else d.quotes[i]=clone(q);this.demoSave(d);return}
+    const row={id:q.id,wedding_id:q.wedding_id,doc_id:q.doc_id,status:q.status,vendor:q.vendor,category:q.category,currency:q.currency,total:+q.total||0,data:q.data,budget_item_id:q.budget_item_id,updated_at:q.updated_at};const {error}=await this.sb.from('quotes').upsert(row);if(error)throw error},
+  async deleteQuote(q){if(DEMO){const d=this.demo();d.quotes=(d.quotes||[]).filter(x=>x.id!==q.id);this.demoSave(d);return}const {error}=await this.sb.from('quotes').delete().eq('id',q.id);if(error)throw error},
+  async allQuotes(){if(DEMO)return this.demo().quotes||[];const {data,error}=await this.sb.from('quotes').select('*').order('created_at',{ascending:false});if(error)throw error;return data},
+  async ai(payload){if(DEMO)throw new Error('La IA funciona en la app publicada. Aquí captura a mano.');const {data:{session}}=await this.sb.auth.getSession();
+    const r=await fetch('/api/leer',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+(session?.access_token||'')},body:JSON.stringify(payload)});
+    const j=await r.json().catch(()=>({error:'Respuesta no válida del servidor ('+r.status+')'}));if(!r.ok)throw new Error(j.error||('Error '+r.status));return j},
   async saveSettings(s){this.settings=s;if(DEMO){const d=this.demo();d.settings=s;this.demoSave(d);return}const {error}=await this.sb.from('planner_settings').upsert({planner_id:this.user.id,data:s});if(error)throw error},
   async becomePlanner(){await this.saveSettings({name:''});this.role='planner'},
-  subscribe(id,cb){this.unsub();if(DEMO)return;this.chan=this.sb.channel('w-'+id).on('postgres_changes',{event:'*',schema:'public',table:'weddings',filter:`id=eq.${id}`},()=>cb('w')).on('postgres_changes',{event:'*',schema:'public',table:'documents',filter:`wedding_id=eq.${id}`},()=>cb('d')).subscribe()},
+  subscribe(id,cb){this.unsub();if(DEMO)return;this.chan=this.sb.channel('w-'+id).on('postgres_changes',{event:'*',schema:'public',table:'weddings',filter:`id=eq.${id}`},()=>cb('w')).on('postgres_changes',{event:'*',schema:'public',table:'documents',filter:`wedding_id=eq.${id}`},()=>cb('d')).on('postgres_changes',{event:'*',schema:'public',table:'quotes',filter:`wedding_id=eq.${id}`},()=>cb('q')).subscribe()},
   unsub(){if(this.chan){this.sb.removeChannel(this.chan);this.chan=null}},
   async signIn(email,pw){const {error}=await this.sb.auth.signInWithPassword({email,password:pw});if(error)throw error},
   async signUp(email,pw){const {data,error}=await this.sb.auth.signUp({email,password:pw,options:{emailRedirectTo:location.origin+location.pathname}});if(error)throw error;return data},
@@ -268,7 +294,7 @@ const V={cred:null,view:'home',id:null,tab:'resumen',w:null,priv:{},docs:[],savi
 const isPlanner=()=>Store.role==='planner';
 let saveT=null;
 function markDirty(){V.pending=true;setStatus('Sin guardar');clearTimeout(saveT);saveT=setTimeout(saveNow,700)}
-async function saveNow(){if(!V.w||!isPlanner())return;clearTimeout(saveT);V.saving=true;setStatus('Guardando…');try{const r=await Store.saveWedding(V.w);V.w.updated_at=r.updated_at;V.pending=false;setStatus('Guardado')}catch(e){setStatus('Error');toast('No se pudo guardar: '+(e.message||e))}V.saving=false}
+async function saveNow(){const w=V.w;if(!w||!isPlanner()||!V.pending)return;clearTimeout(saveT);V.saving=true;setStatus('Guardando…');try{const r=await Store.saveWedding(w);w.updated_at=r.updated_at;V.pending=false;setStatus('Guardado')}catch(e){setStatus('Error');toast('No se pudo guardar: '+(e.message||e))}V.saving=false}
 function setStatus(t){const s=$('#status');if(s)s.textContent=t}
 window.addEventListener('beforeunload',e=>{if(V.pending){saveNow();e.preventDefault();e.returnValue=''}});
 
@@ -278,7 +304,7 @@ function topBar(){const demoBar=DEMO?`<div class="demo">Modo demo: los datos se 
   ${DEMO?`<div class="seg" role="group" aria-label="Ver como"><button data-role="planner" aria-pressed="${isPlanner()}">Planner</button><button data-role="couple" aria-pressed="${!isPlanner()}">Pareja</button></div>`:''}
   ${V.view==='wedding'&&isPlanner()?'<span class="status" id="status" aria-live="polite"></span>':''}
   <span class="who">${esc(Store.user?.email||'')}</span>${DEMO?'':'<button class="btn sm" id="logout">Salir</button>'}</header>${demoBar}`}
-function bindTop(){const h=$('#goHome');if(h)h.onclick=()=>{if(isPlanner()){saveNow();V.view='home';V.w=null;Store.unsub();route()}};
+function bindTop(){const h=$('#goHome');if(h)h.onclick=async()=>{if(isPlanner()){await saveNow();V.view='home';V.w=null;Store.unsub();route()}};
   document.querySelectorAll('[data-role]').forEach(b=>b.onclick=async()=>{await saveNow();LS.set('mw.role',b.dataset.role);Store.role=b.dataset.role;V.view='home';V.w=null;route()});
   const lo=$('#logout');if(lo)lo.onclick=async()=>{await saveNow();await Store.signOut();V.view='home';V.w=null;route()}}
 async function route(){
@@ -294,10 +320,10 @@ async function renderHome(){const ws=await Store.listWeddings().catch(e=>{toast(
     <div class="meta"><span>${esc(w.place||w.loc?.name||'Lugar por definir')}</span>${w.guests?`<span>${w.guests} invitados</span>`:''}</div>
     <div class="row">${d!=null?`<span class="pill ${d<0?'':d<=30?'warn':'gold'}">${daysLbl(d)}</span>`:''}${(w.couple_emails||[]).length?'<span class="pill">Pareja con acceso</span>':''}</div>
     ${t.target?`<div><div class="meta" style="justify-content:space-between"><span>Contratado</span><span class="money">${money(t.comm,w.currency)} de ${money(t.target,w.currency)}</span></div><div class="bar"><i style="width:${pct}%"></i></div></div>`:''}</button>`};
-  $('#app').innerHTML=topBar()+`<main class="wrap"><div class="whead"><div style="flex:1"><p class="eyebrow">Tus bodas</p><h1>${ws.length?'Próximas bodas':'Empieza tu primera boda'}</h1></div><button class="btn primary" id="newW">+ Nueva boda</button></div>
+  $('#app').innerHTML=topBar()+`<main class="wrap"><div class="whead"><div style="flex:1"><p class="eyebrow">Tus bodas</p><h1>${ws.length?'Próximas bodas':'Empieza tu primera boda'}</h1></div><div class="row"><button class="btn" id="goV">Proveedores</button><button class="btn primary" id="newW">+ Nueva boda</button></div></div>
   ${ws.length?`<div class="wlist">${up.map(card).join('')}</div>${past.length?`<h2 style="margin:28px 0 12px">Bodas pasadas</h2><div class="wlist">${past.map(card).join('')}</div>`:''}`:`<div class="card empty"><h2>Aquí verás todas tus bodas</h2><p>Crea una boda para armar su itinerario con la hora del atardecer, su presupuesto y sus documentos, y darle acceso a la pareja.</p><button class="btn primary" id="newW2">Crear boda</button></div>`}
   <section class="card" style="margin-top:24px"><h3>Mi plantilla de itinerario</h3><p class="note">Las bodas nuevas empiezan con esta plantilla. Para cambiarla, ajusta el itinerario de cualquier boda y toca "Guardar como mi plantilla".</p><p class="note">${(Store.settings.template||[]).length?`Tu plantilla tiene ${(Store.settings.template||[]).length} momentos.`:'Usas la plantilla de Memories.'}</p></section></main>`;
-  bindTop();const nw=()=>newWedding();$('#newW').onclick=nw;const n2=$('#newW2');if(n2)n2.onclick=nw;
+  bindTop();$('#goV').onclick=renderVendors;const nw=()=>newWedding();$('#newW').onclick=nw;const n2=$('#newW2');if(n2)n2.onclick=nw;
   document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openWedding(b.dataset.open,'resumen'))}
 function newWedding(){const L=LOCS[0];modal(`<h2>Nueva boda</h2><p class="note">Después puedes cambiar todo.</p>
   <div class="field" style="margin-top:14px"><label for="nwC">Pareja</label><input type="text" id="nwC" placeholder="Ana &amp; Luis"></div>
@@ -317,12 +343,12 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#modal').hidden
 /* ---------- Boda ---------- */
 async function openWedding(id,tab){await saveNow();const w=await Store.getWedding(id).catch(e=>{toast(e.message);return null});if(!w){V.view='home';return renderHome()}
   V.view='wedding';V.id=id;V.w=w;V.tab=tab||V.tab||'resumen';w.itinerary=w.itinerary||{lead:90,blocks:[]};w.itinerary.blocks=w.itinerary.blocks||[];w.budget=w.budget||{target:0,items:[]};w.budget.items=w.budget.items||[];w.loc=w.loc||{};w.couple_emails=w.couple_emails||[];
-  V.priv=isPlanner()?await Store.getPrivate(id).catch(()=>({})):{};V.docs=await Store.listDocs(id).catch(()=>[]);
-  Store.subscribe(id,async kind=>{if(kind==='d'){V.docs=await Store.listDocs(id).catch(()=>V.docs);if(V.tab==='docs'||V.tab==='resumen')renderTab()}
+  V.priv=isPlanner()?await Store.getPrivate(id).catch(()=>({})):{};V.docs=await Store.listDocs(id).catch(()=>[]);V.quotes=isPlanner()?await Store.listQuotes(id).catch(()=>[]):[];
+  Store.subscribe(id,async kind=>{if(kind==='q'){if(!isPlanner()||!$('#modal').hidden||QV.busy)return;V.quotes=await Store.listQuotes(id).catch(()=>V.quotes);if(V.tab==='cotizaciones')tabQuotes($('#tab'));return}if(kind==='d'){V.docs=await Store.listDocs(id).catch(()=>V.docs);if(V.tab==='docs'||V.tab==='resumen')renderTab()}
     else{if(isPlanner()&&(V.pending||V.saving))return;const nw=await Store.getWedding(id).catch(()=>null);if(!nw)return;if(isPlanner()&&nw.updated_at===V.w.updated_at)return;const a=document.activeElement;if(isPlanner()&&a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;
       Object.assign(V.w,nw);renderWedding();if(!isPlanner())toast('Tu planner actualizó la información.')}});
   renderWedding()}
-const TABS_P=[['resumen','Resumen'],['itinerario','Itinerario'],['presupuesto','Presupuesto'],['docs','Documentos'],['datos','Datos y acceso']];
+const TABS_P=[['resumen','Resumen'],['itinerario','Itinerario'],['presupuesto','Presupuesto'],['cotizaciones','Cotizaciones'],['docs','Documentos'],['datos','Datos y acceso']];
 const TABS_C=[['resumen','Resumen'],['itinerario','Itinerario'],['presupuesto','Presupuesto'],['docs','Documentos']];
 function renderWedding(){const w=V.w,d=daysTo(w.date),tabs=isPlanner()?TABS_P:TABS_C;if(!tabs.some(t=>t[0]===V.tab))V.tab='resumen';
   $('#app').innerHTML=topBar()+`<main class="wrap"><div class="whead"><div style="flex:1 1 280px;min-width:0">${isPlanner()?'<button class="btn ghost sm" id="back" style="padding-left:0">← Todas las bodas</button>':''}<p class="eyebrow">${esc(fdate(w.date))}</p><h1>${esc(w.couple||'Boda sin nombre')}</h1></div>
@@ -331,7 +357,7 @@ function renderWedding(){const w=V.w,d=daysTo(w.date),tabs=isPlanner()?TABS_P:TA
   bindTop();const b=$('#back');if(b)b.onclick=async()=>{await saveNow();Store.unsub();V.view='home';V.w=null;renderHome()};
   document.querySelectorAll('[data-tab]').forEach(x=>x.onclick=()=>{V.tab=x.dataset.tab;document.querySelectorAll('[data-tab]').forEach(y=>y.setAttribute('aria-selected',y.dataset.tab===V.tab));renderTab()});
   if(isPlanner())setStatus(V.pending?'Sin guardar':'Guardado');renderTab()}
-function renderTab(){const el=$('#tab');if(!el)return;({resumen:tabResumen,itinerario:tabItin,presupuesto:tabBudget,docs:tabDocs,datos:tabDatos})[V.tab](el)}
+function renderTab(){const el=$('#tab');if(!el)return;({resumen:tabResumen,itinerario:tabItin,presupuesto:tabBudget,cotizaciones:tabQuotes,docs:tabDocs,datos:tabDatos})[V.tab](el)}
 
 /* Resumen */
 function tabResumen(el){const w=V.w,cpl=!isPlanner(),t=totals(w,cpl),ss=sunsetMin(w),sc=schedule(w),cer=(w.itinerary.blocks||[]).findIndex(b=>b.anchor),d=daysTo(w.date);
@@ -360,10 +386,10 @@ function tabItin(el){const w=V.w,it=w.itinerary,pl=isPlanner(),{out,ss}=schedule
      ${ss!=null?`<p class="note">Hora dorada para fotos: ${hm(ss-60)} a ${hm(ss)}. Cálculo astronómico, ± 3 min.</p>`:'<p class="note">Agrega fecha y destino en "Datos y acceso" para calcular el atardecer.</p>'}</div>
      ${pl?`<div style="max-width:420px"><div class="row"><label for="lead" class="muted" style="font-size:13px">La ceremonia empieza</label><input type="number" id="lead" min="0" max="600" step="5" value="${it.lead??90}" style="width:80px"><span class="muted" style="font-size:13px">min antes del atardecer</span></div>
        <label class="row" style="margin-top:6px;font-size:13px"><input type="checkbox" id="rnd" ${it.round!==false?'checked':''}> Redondear a 5 minutos</label></div>`:''}</div></div>
-   ${pl?`<div class="row" style="margin-bottom:10px;justify-content:space-between"><div class="row"><button class="btn sm primary" id="addB">+ Agregar momento</button><button class="btn sm" id="cpy">Copiar para WhatsApp</button></div><div class="row"><button class="btn sm" id="tplS">Guardar como mi plantilla</button><button class="btn sm" id="tplL">Usar mi plantilla</button></div></div>
+   ${pl?`<div class="row" style="margin-bottom:10px;justify-content:space-between"><div class="row"><button class="btn sm primary" id="addB">+ Agregar momento</button><button class="btn sm" id="pst">Pegar itinerario</button><button class="btn sm" id="cpy">Copiar para WhatsApp</button></div><div class="row"><button class="btn sm" id="tplS">Guardar como mi plantilla</button><button class="btn sm" id="tplL">Usar mi plantilla</button></div></div>
      <p class="note" style="margin:-4px 0 10px">El momento marcado como <b>ancla</b> se calcula desde el atardecer. Los de antes se acomodan hacia atrás y los de después, hacia adelante. Si un momento tiene hora fija, los siguientes empiezan desde ahí.</p>`:`<div class="row" style="margin-bottom:10px"><button class="btn sm" id="cpy">Copiar itinerario</button></div>`}
    <div class="itin ${pl?'':'ro'}">${rows||'<p class="note">Aún no hay momentos en el itinerario.</p>'}</div>`;
-  if(pl){const ld=$('#lead');ld.oninput=()=>{it.lead=+ld.value||0;markDirty()};ld.onchange=()=>tabItin(el);$('#rnd').onchange=e=>{it.round=e.target.checked;markDirty();tabItin(el)};
+  if(pl){$('#pst').onclick=pasteItin;const ld=$('#lead');ld.oninput=()=>{it.lead=+ld.value||0;markDirty()};ld.onchange=()=>tabItin(el);$('#rnd').onchange=e=>{it.round=e.target.checked;markDirty();tabItin(el)};
     $('#addB').onclick=()=>{bl.push({id:uid(),t:'Nuevo momento',dur:30,anchor:false,fixed:'',couple:true,note:''});markDirty();tabItin(el);const ins=el.querySelectorAll('.blk .ti input');ins[ins.length-1]?.select()};
     $('#tplS').onclick=async()=>{Store.settings.template=bl.map(b=>({t:b.t,dur:b.dur,anchor:b.anchor,couple:b.couple,note:b.note}));try{await Store.saveSettings(Store.settings);toast('Plantilla guardada. Las bodas nuevas empezarán así.')}catch(e){toast(e.message)}};
     $('#tplL').onclick=()=>{const tpl=(Store.settings.template||[]).length?Store.settings.template:DEFAULT_ITIN;confirmIn('#tplL','¿Reemplazar el itinerario con tu plantilla?',()=>{it.blocks=itinFrom(tpl);markDirty();tabItin(el)})};
@@ -398,12 +424,13 @@ function tabBudget(el){const w=V.w,pl=isPlanner(),B=w.budget,cur=w.currency||'MX
      ${pl?`<div style="min-width:200px"><div class="field"><label for="tgt">Presupuesto objetivo</label><input type="number" id="tgt" min="0" step="1000" value="${B.target||''}" placeholder="0"></div><div class="field"><label for="curr">Moneda</label><select id="curr"><option value="MXN" ${cur==='MXN'?'selected':''}>Pesos (MXN)</option><option value="USD" ${cur==='USD'?'selected':''}>Dólares (USD)</option></select></div></div>`:''}</div>
      ${t.target?`<div class="bar" style="margin-top:6px"><i style="width:${Math.min(100,t.proj/t.target*100)}%;${t.proj>t.target?'background:var(--bad)':''}"></i></div><p class="note">${t.proj>t.target?`<span class="pill bad">${money(t.proj-t.target,cur)} arriba del objetivo</span>`:`Quedan ${money(t.target-t.proj,cur)} disponibles del objetivo`}</p>`:''}
      <p class="note">Proyectado usa la cotización cuando ya la hay y el estimado cuando todavía no. Se actualiza solo con cada cambio.</p></div>
-   ${pl?`<div class="row" style="margin-top:14px"><select id="newCat" style="width:auto">${CATS.map(c=>`<option>${esc(c)}</option>`).join('')}</select><button class="btn primary sm" id="addI">+ Agregar concepto</button><button class="btn sm" id="addBase">Agregar lista básica</button></div>`:''}
+   ${pl?`<div class="row" style="margin-top:14px"><select id="newCat" style="width:auto">${CATS.map(c=>`<option>${esc(c)}</option>`).join('')}</select><button class="btn primary sm" id="addI">+ Agregar concepto</button><button class="btn sm" id="addBase">Agregar lista básica</button><button class="btn sm" id="impX">Importar desde Excel</button></div>`:''}
    ${items.length?`<div class="bhead" style="margin-top:16px"><span>Concepto</span><span>Proveedor</span>${pl?'<span style="text-align:right">Estimado</span><span style="text-align:right">Cotización</span><span>Estado</span><span></span>':'<span style="text-align:right">Monto</span><span style="text-align:right">Pagado</span>'}</div>`:''}
    ${cats.map(c=>{const its=items.filter(i=>i.cat===c),sum=its.reduce((a,i)=>a+itemAmount(i),0);return `<div class="bcat"><h3>${esc(c)}<small>${money(sum,cur)}</small></h3>${its.map(i=>pl?bItemEdit(i,w):bItemRO(i,w)).join('')}</div>`}).join('')}
    ${!items.length?`<div class="card empty" style="margin-top:14px"><h2>Sin conceptos todavía</h2><p>${pl?'Agrega conceptos uno por uno o usa la lista básica de una boda.':'Tu planner aún no comparte el presupuesto.'}</p></div>`:''}`;
   if(!pl)return;
   const tg=$('#tgt');tg.oninput=()=>{B.target=+tg.value||0;markDirty()};tg.onchange=()=>tabBudget(el);$('#curr').onchange=e=>{w.currency=e.target.value;markDirty();tabBudget(el)};
+  $('#impX').onclick=importExcel;
   $('#addI').onclick=()=>{const i={id:uid(),cat:$('#newCat').value,concept:'',vendor:'',est:0,quote:0,status:'estimado',payments:[],due:'',visible:true,note:'',doc:''};B.items.push(i);V.openItems.add(i.id);markDirty();tabBudget(el);el.querySelector(`[data-i="${i.id}"] [data-f="concept"]`)?.focus()};
   $('#addBase').onclick=()=>{const base=['Lugar','Banquete','Bebidas y barra','Fotografía','Video','Música y DJ','Flores y decoración','Mobiliario y mantelería','Pastel y postres','Belleza','Invitaciones y papelería','Ceremonia','Honorarios Memories'];
     let n=0;for(const c of base)if(!B.items.some(i=>i.cat===c)){B.items.push({id:uid(),cat:c,concept:c,vendor:'',est:0,quote:0,status:'estimado',payments:[],due:'',visible:c!=='Honorarios Memories'||true,note:'',doc:''});n++}markDirty();tabBudget(el);toast(n?`Agregué ${n} conceptos. Ponles el estimado.`:'Ya tienes todos los conceptos básicos.')};
@@ -418,7 +445,7 @@ function tabBudget(el){const w=V.w,pl=isPlanner(),B=w.budget,cur=w.currency||'MX
     row.querySelectorAll('[data-p]').forEach(pr=>{const p=i.payments.find(x=>x.id===pr.dataset.p);pr.querySelectorAll('[data-pf]').forEach(inp=>{inp.addEventListener('input',()=>{p[inp.dataset.pf]=inp.type==='number'?(+inp.value||0):inp.value;markDirty()});inp.addEventListener('change',()=>tabBudget(el))});
       pr.querySelector('[data-pd]').onclick=()=>{i.payments.splice(i.payments.indexOf(p),1);markDirty();tabBudget(el)}})})}
 function bItemEdit(i,w){const cur=w.currency,open=V.openItems.has(i.id),paid=itemPaid(i),bal=itemAmount(i)-paid,docs=V.docs;
-  return `<div class="bitem" data-i="${i.id}"><div class="bsum"><input type="text" class="c-concept" data-f="concept" value="${esc(i.concept)}" placeholder="Concepto" aria-label="Concepto"><input type="text" data-f="vendor" value="${esc(i.vendor)}" placeholder="Proveedor" aria-label="Proveedor">
+  return `<div class="bitem" data-i="${i.id}"><div class="bsum"><input type="text" class="c-concept" data-f="concept" value="${esc(i.concept)}" placeholder="Concepto" aria-label="Concepto" title="${i.quoteId?'Cotización aprobada en la pestaña Cotizaciones':''}"><input type="text" data-f="vendor" value="${esc(i.vendor)}" placeholder="Proveedor" aria-label="Proveedor">
    <label class="ml"><span>Estimado</span><input type="number" class="money" data-f="est" min="0" step="100" value="${i.est||''}" placeholder="0" aria-label="Estimado"></label><label class="ml"><span>Cotización</span><input type="number" class="money" data-f="quote" min="0" step="100" value="${i.quote||''}" placeholder="0" aria-label="Cotización"></label>
    <label class="ml"><span>Estado</span><select data-f="status" aria-label="Estado">${STATUS.map(([v,n])=>`<option value="${v}" ${i.status===v?'selected':''}>${n}</option>`).join('')}</select></label><button class="btn sm tg" data-a="tog" aria-expanded="${open}" aria-label="Más detalles"><span class="tgl">${open?'Cerrar':'Pagos y detalles'}</span><span class="tgs">${open?'−':'+'}</span></button></div>
    ${open?`<div class="bdet"><div class="f2"><div class="field"><label>Fecha límite de pago</label><input type="date" data-f="due" value="${esc(i.due||'')}"></div>
@@ -477,6 +504,173 @@ function inviteText(w,link){const c=V.cred;return `¡Hola${w.couple?' '+w.couple
 function genPw(w){const base=(w.couple||'boda').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z]+/g,'-').replace(/^-|-$/g,'').slice(0,18)||'boda';return base+'-'+Math.floor(1000+Math.random()*9000)}
 function renderWeddingHead(){const h=$('.whead');if(!h)return;const w=V.w,d=daysTo(w.date);h.querySelector('.eyebrow').textContent=fdate(w.date);h.querySelector('h1').textContent=w.couple||'Boda sin nombre';
   const pills=h.querySelector('.row:last-child');if(pills)pills.innerHTML=`${d!=null?`<span class="pill ${d<=30&&d>=0?'warn':'gold'}">${daysLbl(d)}</span>`:''}<span class="pill">${esc(w.place||w.loc?.name||'Lugar por definir')}</span>`}
+
+/* ---------- Fase 2: cotizaciones, proveedores, Excel e itinerarios ---------- */
+const QSTAT=[['revisar','Por revisar'],['comparando','Comparando'],['aprobada','Aprobadas'],['descartada','Descartadas']];
+const AI_EXT=/\.(pdf|jpe?g|png|webp|gif|docx|xlsx|xls|csv)$/i;
+const LIBS={xlsx:'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',mammoth:'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js'};
+const libLoaded={};async function lib(n){if(!libLoaded[n]){await loadScript(LIBS[n]);libLoaded[n]=1}}
+function aiCtx(){const w=V.w;return {pareja:w.couple,fecha:w.date,invitados:w.guests,moneda:w.currency||'MXN'}}
+async function downscale(file,max){const url=URL.createObjectURL(file);const im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('No se pudo abrir la imagen. Si es de iPhone (HEIC), mándala como JPG.'));i.src=url});
+  const s=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(url);return c.toDataURL('image/jpeg',.85).split(',')[1]}
+async function aiPayload(file,doc,mode){const n=file.name.toLowerCase(),t=file.type||'';
+  if(/pdf/.test(t)||n.endsWith('.pdf'))return {mode,url:await Store.docUrl(doc),mime:'application/pdf'};
+  if(/^image\//.test(t)||/\.(jpe?g|png|webp|gif|heic)$/.test(n))return {mode,b64:await downscale(file,2000),mime:'image/jpeg'};
+  if(n.endsWith('.docx')){await lib('mammoth');const r=await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()});return {mode,text:r.value}}
+  if(/\.(xlsx|xls|csv)$/.test(n)){await lib('xlsx');const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});return {mode,text:wb.SheetNames.map(s=>'Hoja '+s+':\n'+XLSX.utils.sheet_to_csv(wb.Sheets[s])).join('\n\n')}}
+  throw new Error('Formato no compatible. Sube PDF, foto, Word (.docx) o Excel.')}
+function quoteFromAI(q,a){q.vendor=a.proveedor||q.vendor||'';q.category=CATS.includes(a.categoria)?a.categoria:(q.category||'Otros');q.currency=a.moneda||V.w.currency||'MXN';
+  const items=(a.conceptos||[]).map(c=>({concept:c.concepto||'',qty:c.cantidad??null,unit:c.precio_unitario??null,amount:c.importe??null}));
+  const sum=items.reduce((s,i)=>s+(+i.amount||0),0);q.total=a.total??(sum||0);
+  q.data={items,subtotal:a.subtotal??null,tax:a.impuestos??null,deposit:a.anticipo??null,valid_until:a.vigencia||'',includes:a.incluye||'',conditions:a.condiciones||'',doubts:a.dudosos||[],note:a.nota||'',ai:true};
+  if(a.total==null)q.data.doubts.push('total');q.status='revisar';return q}
+function blankQuote(extra){return Object.assign({id:crypto.randomUUID?crypto.randomUUID():uid(),wedding_id:V.id,doc_id:null,status:'revisar',vendor:'',category:'Otros',currency:V.w.currency||'MXN',total:0,data:{items:[],doubts:[]},budget_item_id:null,created_at:new Date().toISOString()},extra||{})}
+
+/* Pestaña Cotizaciones */
+const QV={busy:0,msg:''};
+function tabQuotes(el){const qs=V.quotes||[];const pick=st=>qs.filter(q=>st==='revisar'?['revisar','leyendo','error'].includes(q.status):q.status===st);
+  const byCat=list=>{const m=new Map();for(const q of list){const c=q.category||'Otros';if(!m.has(c))m.set(c,[]);m.get(c).push(q)}return [...m.entries()].sort((a,b)=>CATS.indexOf(a[0])-CATS.indexOf(b[0]))};
+  const cur=V.w.currency||'MXN';
+  const card=q=>{const d=q.data||{},nd=(d.doubts||[]).length,doc=V.docs.find(x=>x.id===q.doc_id);return `<div class="qcard" data-q="${q.id}"><div style="min-width:0"><b>${esc(q.vendor||(q.status==='leyendo'?'Leyendo…':'Proveedor sin nombre'))}</b><div class="meta"><span>${esc(q.category||'Sin categoría')}</span>${doc?`<span>${esc(doc.name)}</span>`:''}${d.valid_until?`<span>Vigente al ${esc(fdate(d.valid_until,{weekday:undefined}))}</span>`:''}</div>
+    <div class="row" style="margin-top:4px">${q.status==='leyendo'?'<span class="pill gold">La IA está leyendo…</span>':''}${q.status==='error'?`<span class="pill bad">${esc(d.error||'No se pudo leer')}</span>`:''}${nd&&q.status==='revisar'?`<span class="pill warn">${nd} dato${nd>1?'s':''} por confirmar</span>`:''}${q.status==='aprobada'?'<span class="pill ok">En el presupuesto</span>':''}</div></div>
+    <div class="qright"><span class="money" style="font-size:16px">${q.total?money(q.total,q.currency||cur):'—'}</span>${q.status!=='leyendo'?`<button class="btn sm ${q.status==='revisar'||q.status==='error'?'primary':''}" data-rv>${q.status==='revisar'||q.status==='error'?'Revisar':'Ver'}</button>`:''}</div></div>`};
+  const cmp=byCat(pick('comparando'));
+  el.innerHTML=`<div class="drop" id="qdrop"><p style="margin:0 0 6px"><b>Sube cotizaciones nuevas o las que ya tienes hechas</b></p><p class="note" style="margin:0 0 10px">PDF, fotos, Word o Excel. Puedes subir varias a la vez: la IA las lee y las deja en "Por revisar" para que las apruebes.</p>
+    <div class="row" style="justify-content:center"><label class="btn primary" for="qIn" style="cursor:pointer">Subir cotizaciones</label><input type="file" id="qIn" multiple hidden accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.docx,.xlsx,.xls,.csv,image/*,application/pdf"><button class="btn" id="qMan">Capturar a mano</button><button class="btn" id="qFromDocs">Usar un documento ya subido</button></div>
+    ${QV.busy?`<p class="note" aria-live="polite"><b>${esc(QV.msg)}</b></p>`:''}${DEMO?'<p class="note">En el modo demo la IA no está disponible: puedes capturar a mano. En la app publicada, las cotizaciones se leen solas.</p>':''}</div>
+   ${QSTAT.map(([st,name])=>{const list=pick(st);if(!list.length&&st!=='revisar')return '';
+     if(st==='comparando')return `<section class="qsec"><h2>${name}</h2><p class="note">Varias opciones de la misma categoría, lado a lado. Elige una y las demás se descartan.</p>${cmp.map(([c,l])=>`<h3 class="qcat">${esc(c)}</h3><div class="cmp">${l.map(q=>`<div class="cmpc" data-q="${q.id}"><b>${esc(q.vendor||'Sin nombre')}</b><div class="money" style="font-size:20px;text-align:left;margin:6px 0">${money(q.total,q.currency||cur)}</div>
+         <dl class="kv" style="font-size:12.5px"><dt>Anticipo</dt><dd>${q.data?.deposit?money(q.data.deposit,q.currency||cur):'—'}</dd><dt>Vigencia</dt><dd>${q.data?.valid_until?esc(fdate(q.data.valid_until,{weekday:undefined})):'—'}</dd><dt>Conceptos</dt><dd>${(q.data?.items||[]).length}</dd></dl>
+         <p class="note" style="min-height:36px">${esc((q.data?.includes||'').slice(0,160))}</p><div class="row"><button class="btn sm primary" data-pick>Elegir esta</button><button class="btn sm" data-rv>Ver</button></div></div>`).join('')}</div>`).join('')}</section>`;
+     const body=list.length?byCat(list).map(([c,l])=>`<h3 class="qcat">${esc(c)}</h3><div class="qlist">${l.map(card).join('')}</div>`).join(''):'<p class="note">No hay cotizaciones pendientes de revisar.</p>';
+     return st==='descartada'?`<details class="qsec"><summary><h2 style="display:inline">${name} (${list.length})</h2></summary>${body}</details>`:`<section class="qsec"><h2>${name}${list.length?` <small class="muted" style="font-size:14px">${list.length}</small>`:''}</h2>${body}</section>`}).join('')}`;
+  const fi=$('#qIn'),dr=$('#qdrop');fi.onchange=()=>{quoteUpload([...fi.files]);fi.value=''};
+  ['dragover','dragenter'].forEach(e=>dr.addEventListener(e,ev=>{ev.preventDefault();dr.classList.add('on')}));['dragleave','drop'].forEach(e=>dr.addEventListener(e,ev=>{ev.preventDefault();dr.classList.remove('on')}));dr.addEventListener('drop',ev=>quoteUpload([...ev.dataTransfer.files]));
+  $('#qMan').onclick=async()=>{const q=blankQuote();try{await Store.saveQuote(q);V.quotes.unshift(q);reviewQuote(q)}catch(e){toast(e.message)}};
+  $('#qFromDocs').onclick=()=>pickDocForQuote();
+  el.querySelectorAll('[data-q]').forEach(c=>{const q=V.quotes.find(x=>x.id===c.dataset.q);c.querySelectorAll('[data-rv]').forEach(b=>b.onclick=()=>reviewQuote(q));const p=c.querySelector('[data-pick]');if(p)p.onclick=()=>reviewQuote(q,true)})}
+async function quoteUpload(files){files=files.filter(Boolean);if(!files.length)return;let i=0;
+  for(const f of files){i++;QV.busy=1;QV.msg=`Subiendo y leyendo ${i} de ${files.length}: ${f.name}`;if(V.tab==='cotizaciones')tabQuotes($('#tab'));
+    let q;try{const doc=await Store.uploadDoc(V.id,f,{kind:'cotizacion',visible:false});V.docs.unshift(doc);q=blankQuote({doc_id:doc.id,status:'leyendo',vendor:''});await Store.saveQuote(q);V.quotes.unshift(q);
+      if(V.tab==='cotizaciones')tabQuotes($('#tab'));
+      try{const p=await aiPayload(f,doc,'cotizacion');p.context=aiCtx();const r=await Store.ai(p);quoteFromAI(q,r.data)}catch(e){q.status='error';q.data={items:[],doubts:[],error:e.message}}
+      await Store.saveQuote(q)}catch(e){toast('No se pudo subir '+f.name+': '+(e.message||e))}}
+  QV.busy=0;QV.msg='';if(V.tab==='cotizaciones')tabQuotes($('#tab'));const nrev=V.quotes.filter(q=>q.status==='revisar').length;if(nrev)toast(`Listo. Tienes ${nrev} cotización${nrev>1?'es':''} por revisar.`)}
+function pickDocForQuote(){const docs=V.docs.filter(d=>!V.quotes.some(q=>q.doc_id===d.id));
+  modal(`<h2>Usar un documento ya subido</h2><p class="note">Elige el archivo y la IA lo lee como cotización.</p><div class="upc" style="margin-top:12px">${docs.length?docs.map(d=>`<div><span>${esc(d.name)}</span><button class="btn sm" data-pd="${d.id}">Leer</button></div>`).join(''):'<p class="note">No hay documentos sin cotización. Súbelos aquí mismo.</p>'}</div><div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" id="mX">Cerrar</button></div>`);
+  $('#mX').onclick=closeModal;document.querySelectorAll('[data-pd]').forEach(b=>b.onclick=async()=>{const d=V.docs.find(x=>x.id===b.dataset.pd);closeModal();const q=blankQuote({doc_id:d.id,status:'leyendo'});await Store.saveQuote(q);V.quotes.unshift(q);tabQuotes($('#tab'));
+    try{const u=await Store.docUrl(d);let p;if(/pdf/.test(d.mime||'')||/\.pdf$/i.test(d.name))p={mode:'cotizacion',url:u,mime:'application/pdf'};else if(/^image\//.test(d.mime||''))p={mode:'cotizacion',url:u,mime:d.mime};else{const blob=await (await fetch(u)).blob();p=await aiPayload(new File([blob],d.name,{type:d.mime||''}),d,'cotizacion')}
+      p.context=aiCtx();const r=await Store.ai(p);quoteFromAI(q,r.data)}catch(e){q.status='error';q.data={items:[],doubts:[],error:e.message}}await Store.saveQuote(q);tabQuotes($('#tab'))})}
+async function reviewQuote(q,choosing){const doc=V.docs.find(x=>x.id===q.doc_id);let url='';if(doc){try{url=await Store.docUrl(doc)}catch(e){}}
+  const d=q.data=q.data||{items:[],doubts:[]};d.items=d.items||[];d.doubts=d.doubts||[];const dz=k=>d.doubts.some(x=>x===k||x.startsWith(k+'.'))?'doubt':'';const cur=q.currency||V.w.currency||'MXN';
+  const isImg=doc&&(/^image\//.test(doc.mime||'')||/\.(jpe?g|png|webp|gif)$/i.test(doc.name));const isPdf=doc&&(/pdf/.test(doc.mime||'')||/\.pdf$/i.test(doc.name));
+  const prev=!doc?'<div class="empty"><p>Cotización capturada a mano, sin archivo.</p></div>':DEMO&&isPdf?`<div class="empty"><p>${esc(doc.name)}</p><p class="note">La vista previa del PDF aparece en la app publicada.</p></div>`:isImg?`<img src="${esc(url)}" alt="Cotización" style="width:100%;border-radius:10px">`:isPdf?`<iframe src="${esc(url)}" title="Cotización" style="width:100%;height:100%;min-height:60vh;border:0;border-radius:10px;background:#fff"></iframe>`:`<div class="empty"><p>${esc(doc.name)}</p><button class="btn sm" id="qOpen">Abrir archivo</button></div>`;
+  const B=V.w.budget,targets=B.items.filter(i=>i.cat===q.category);
+  $('#sheet').classList.add('wide');
+  modal(`<div class="row" style="justify-content:space-between;margin-bottom:10px"><h2>${choosing?'Elegir esta cotización':'Revisar cotización'}</h2><button class="btn sm" id="mX">Cerrar</button></div>
+   ${d.note?`<p class="pill warn" style="margin:0 0 10px">${esc(d.note)}</p>`:''}${d.doubts.length?`<p class="note" style="margin:0 0 10px">Lo marcado en amarillo la IA no lo leyó con seguridad. Compáralo con el documento.</p>`:''}${q.status==='error'?`<p class="pill bad" style="margin:0 0 10px">${esc(d.error||'No se pudo leer')}. Captura los datos a mano.</p>`:''}
+   <div class="rv"><div class="rvp">${prev}</div><div class="rvf">
+    <div class="f2"><div class="field ${dz('proveedor')}"><label>Proveedor</label><input type="text" data-qf="vendor" value="${esc(q.vendor)}"></div>
+     <div class="field ${dz('categoria')}"><label>Categoría</label><select data-qf="category">${CATS.map(c=>`<option ${c===q.category?'selected':''}>${esc(c)}</option>`).join('')}</select></div></div>
+    <p class="eyebrow" style="margin-top:4px">Conceptos</p><div class="qitems">${d.items.map((it,k)=>`<div class="qit ${dz('conceptos.'+k)}" data-k="${k}"><input type="text" data-if="concept" value="${esc(it.concept)}" placeholder="Concepto" aria-label="Concepto"><input type="number" data-if="qty" value="${it.qty??''}" placeholder="Cant." aria-label="Cantidad"><input type="number" data-if="unit" value="${it.unit??''}" placeholder="Precio" aria-label="Precio unitario"><input type="number" data-if="amount" value="${it.amount??''}" placeholder="Importe" aria-label="Importe" class="money"><button class="btn sm danger" data-ix aria-label="Quitar">✕</button></div>`).join('')}</div>
+    <div class="row" style="margin:6px 0 12px"><button class="btn sm" id="qAddIt">+ Concepto</button><button class="btn sm" id="qSum">Sumar conceptos al total</button></div>
+    <div class="f2"><div class="field ${dz('total')}"><label>Total</label><input type="number" data-qf="total" value="${q.total||''}"></div><div class="field"><label>Moneda</label><select data-qf="currency"><option ${cur==='MXN'?'selected':''}>MXN</option><option ${cur==='USD'?'selected':''}>USD</option></select></div>
+     <div class="field ${dz('anticipo')}"><label>Anticipo</label><input type="number" data-df="deposit" value="${d.deposit??''}"></div><div class="field ${dz('vigencia')}"><label>Vigencia</label><input type="date" data-df="valid_until" value="${esc(d.valid_until||'')}"></div></div>
+    <div class="field"><label>Qué incluye</label><textarea data-df="includes" style="min-height:60px">${esc(d.includes||'')}</textarea></div>
+    <div class="field"><label>Condiciones</label><textarea data-df="conditions" style="min-height:50px">${esc(d.conditions||'')}</textarea></div>
+    <div class="appr"><p class="eyebrow">Pasar al presupuesto</p><div class="f2"><div class="field"><label>¿Dónde va?</label><select id="qTarget"><option value="">Concepto nuevo en ${esc(q.category||'Otros')}</option>${targets.map(t=>`<option value="${t.id}" ${q.budget_item_id===t.id||(!q.budget_item_id&&!t.vendor&&!t.quote)?'selected':''}>${esc(t.concept||t.cat)}${t.vendor?' · '+esc(t.vendor):''}</option>`).join('')}</select></div>
+      <label class="row" style="font-size:13px;align-self:end;margin-bottom:12px"><input type="checkbox" id="qContr" ${choosing?'':''}> Ya está contratado</label></div>
+      <div class="row"><button class="btn primary" id="qOk">${q.status==='aprobada'?'Actualizar en el presupuesto':'Aprobar'}</button>${q.status!=='comparando'&&q.status!=='aprobada'?'<button class="btn" id="qCmp">Mandar a comparar</button>':''}${q.status!=='descartada'?'<button class="btn" id="qDis">Descartar</button>':'<button class="btn" id="qRev">Regresar a revisar</button>'}</div>
+      <div class="row" style="margin-top:8px;justify-content:space-between">${doc?'<button class="btn sm" id="qRe">Volver a leer con IA</button>':'<span></span>'}<button class="btn sm danger" id="qDel">Borrar cotización</button></div></div>
+   </div></div>`);
+  const close=()=>{$('#sheet').classList.remove('wide');closeModal();if(V.tab==='cotizaciones')tabQuotes($('#tab'))};$('#mX').onclick=close;
+  const sh=$('#sheet');
+  sh.querySelectorAll('[data-qf]').forEach(i=>i.oninput=()=>{const k=i.dataset.qf;q[k]=i.type==='number'?(+i.value||0):i.value;if(k==='category'){reviewQuoteRefresh(q,choosing)}});
+  sh.querySelectorAll('[data-df]').forEach(i=>i.oninput=()=>{const k=i.dataset.df;d[k]=i.type==='number'?(i.value===''?null:+i.value):i.value});
+  sh.querySelectorAll('.qit').forEach(r=>{const it=d.items[+r.dataset.k];r.querySelectorAll('[data-if]').forEach(i=>i.oninput=()=>{const k=i.dataset.if;it[k]=k==='concept'?i.value:(i.value===''?null:+i.value);if((k==='qty'||k==='unit')&&it.qty!=null&&it.unit!=null){it.amount=Math.round(it.qty*it.unit*100)/100;r.querySelector('[data-if="amount"]').value=it.amount}});r.querySelector('[data-ix]').onclick=()=>{d.items.splice(+r.dataset.k,1);reviewQuoteRefresh(q,choosing)}});
+  $('#qAddIt').onclick=()=>{d.items.push({concept:'',qty:null,unit:null,amount:null});reviewQuoteRefresh(q,choosing)};
+  $('#qSum').onclick=()=>{q.total=d.items.reduce((s,i)=>s+(+i.amount||0),0);sh.querySelector('[data-qf="total"]').value=q.total;d.doubts=d.doubts.filter(x=>x!=='total')};
+  const persist=async()=>{q.updated_at=new Date().toISOString();await Store.saveQuote(q)};
+  $('#qOk').onclick=async()=>{try{approveQuote(q,$('#qTarget').value,$('#qContr').checked,choosing);await persist();close();toast('Aprobada y sumada al presupuesto.')}catch(e){toast(e.message)}};
+  const c2=$('#qCmp');if(c2)c2.onclick=async()=>{q.status='comparando';await persist();close();toast('Lista para comparar con otras de '+(q.category||'su categoría')+'.')};
+  const ds=$('#qDis');if(ds)ds.onclick=async()=>{q.status='descartada';unlinkQuote(q);await persist();close()};
+  const rv=$('#qRev');if(rv)rv.onclick=async()=>{q.status='revisar';await persist();close()};
+  const re=$('#qRe');if(re)re.onclick=async()=>{re.disabled=true;re.textContent='Leyendo…';try{const blob=await (await fetch(url)).blob();const p=await aiPayload(new File([blob],doc.name,{type:doc.mime||blob.type}),doc,'cotizacion');p.context=aiCtx();const r=await Store.ai(p);const st=q.status;quoteFromAI(q,r.data);if(st==='aprobada')q.status=st;await persist();reviewQuote(q,choosing)}catch(e){re.disabled=false;re.textContent='Volver a leer con IA';toast(e.message)}};
+  $('#qDel').onclick=async()=>{unlinkQuote(q);await Store.deleteQuote(q);V.quotes=V.quotes.filter(x=>x!==q);close();toast('Cotización borrada. El archivo sigue en Documentos.')};
+  const qo=$('#qOpen');if(qo)qo.onclick=()=>{if(url)window.open(url,'_blank')}}
+function reviewQuoteRefresh(q,ch){reviewQuote(q,ch)}
+function unlinkQuote(q){if(!q.budget_item_id)return;const it=V.w.budget.items.find(i=>i.id===q.budget_item_id);if(it&&it.quoteId===q.id){it.quote=0;it.quoteId='';if(it.status==='cotizado')it.status='estimado';markDirty()}q.budget_item_id=null}
+function approveQuote(q,targetId,contracted,choosing){const B=V.w.budget;let it=targetId?B.items.find(i=>i.id===targetId):null;
+  if(!it&&q.budget_item_id)it=B.items.find(i=>i.id===q.budget_item_id);
+  if(!it){it={id:uid(),cat:q.category||'Otros',concept:'',vendor:'',est:0,quote:0,status:'estimado',payments:[],due:'',visible:true,note:'',doc:''};B.items.push(it)}
+  for(const o of V.quotes)if(o!==q&&o.budget_item_id===it.id&&o.status==='aprobada'){o.status='descartada';o.budget_item_id=null;Store.saveQuote(o)}
+  if(choosing)for(const o of V.quotes)if(o!==q&&o.status==='comparando'&&o.category===q.category){o.status='descartada';Store.saveQuote(o)}
+  it.cat=q.category||it.cat;it.vendor=q.vendor||it.vendor;it.concept=it.concept||(q.data.items[0]?.concept)||q.category;it.quote=+q.total||0;it.quoteId=q.id;it.status=contracted?'contratado':(it.status==='contratado'?'contratado':'cotizado');it.doc=q.doc_id||it.doc;
+  const extra=[q.data.includes,q.data.deposit?`Anticipo: ${money(q.data.deposit,q.currency)}`:'' ].filter(Boolean).join(' · ');if(extra)it.note=extra.slice(0,300);
+  if((q.currency||'MXN')!==(V.w.currency||'MXN'))toast(`Ojo: la cotización está en ${q.currency} y el presupuesto en ${V.w.currency||'MXN'}.`);
+  q.status='aprobada';q.budget_item_id=it.id;markDirty();saveNow()}
+
+/* Directorio de proveedores */
+async function renderVendors(){V.view='vendors';Store.unsub();$('#app').innerHTML=topBar()+`<main class="wrap"><button class="btn ghost sm" id="back" style="padding-left:0">← Todas las bodas</button><p class="eyebrow" style="margin-top:6px">Directorio</p><h1>Proveedores</h1><p class="note">Todas las cotizaciones de todas tus bodas, agrupadas por proveedor. Se llena solo cada vez que apruebas o guardas una cotización.</p>
+  <div class="row" style="margin:14px 0"><input type="text" id="vq" placeholder="Buscar proveedor o categoría" style="flex:1 1 260px"><select id="vc" style="width:auto"><option value="">Todas las categorías</option>${CATS.map(c=>`<option>${esc(c)}</option>`).join('')}</select></div><div id="vlist"><p class="note">Cargando…</p></div></main>`;
+  bindTop();$('#back').onclick=()=>{V.view='home';renderHome()};
+  const all=await Store.allQuotes().catch(e=>{toast(e.message);return []});const ws=await Store.listWeddings().catch(()=>[]);const wn=id=>ws.find(w=>w.id===id);
+  const draw=()=>{const s=($('#vq').value||'').toLowerCase(),cf=$('#vc').value;const m=new Map();
+    for(const q of all){if(!q.vendor||q.status==='leyendo'||q.status==='error')continue;if(cf&&q.category!==cf)continue;if(s&&!(q.vendor+' '+q.category).toLowerCase().includes(s))continue;const k=q.vendor.trim().toLowerCase();if(!m.has(k))m.set(k,{name:q.vendor.trim(),qs:[]});m.get(k).qs.push(q)}
+    const arr=[...m.values()].sort((a,b)=>a.name.localeCompare(b.name,'es'));
+    $('#vlist').innerHTML=arr.length?`<div class="wlist">${arr.map(v=>{const cats=[...new Set(v.qs.map(q=>q.category))];return `<div class="card"><h3>${esc(v.name)}</h3><div class="row" style="margin:6px 0 10px">${cats.map(c=>`<span class="pill">${esc(c)}</span>`).join('')}</div><div class="upc">${v.qs.sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||'')).map(q=>{const w=wn(q.wedding_id)||q.weddings||{};return `<div><span>${esc(w.couple||'Boda')}<br><small class="muted">${esc(w.date?fdate(w.date,{weekday:undefined}):'')} · ${esc((QSTAT.find(x=>x[0]===q.status)||['',q.status])[1])}</small></span><span class="money">${money(q.total,q.currency)}</span></div>`}).join('')}</div></div>`}).join('')}</div>`:'<div class="card empty"><h2>Aún no hay proveedores</h2><p>Cuando subas y revises cotizaciones en tus bodas, aparecerán aquí.</p></div>'};
+  $('#vq').oninput=draw;$('#vc').onchange=draw;draw()}
+
+/* Importar presupuesto desde Excel */
+async function importExcel(){const inp=document.createElement('input');inp.type='file';inp.accept='.xlsx,.xls,.csv';inp.onchange=async()=>{const f=inp.files[0];if(!f)return;
+  try{await lib('xlsx')}catch(e){toast('No se pudo cargar el lector de Excel. Revisa tu conexión.');return}
+  let rows;try{const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})}catch(e){toast('No se pudo leer ese archivo.');return}
+  const KEYS={concept:/concepto|descrip|servicio|partida|art[ií]culo|item|detalle/i,vendor:/proveedor|empresa|vendor|qui[eé]n/i,cat:/categor|rubro|[aá]rea|tipo/i,est:/estimad|presupuest|budget/i,quote:/cotiz|costo|precio|total|monto|importe|valor/i,paid:/pagad|anticipo|abono|pago/i};
+  let hr=rows.findIndex(r=>r.filter(c=>Object.values(KEYS).some(k=>k.test(String(c)))).length>=2);if(hr<0)hr=0;const head=rows[hr].map(String);
+  const det={};for(const [k,re] of Object.entries(KEYS)){const i=head.findIndex((h,ix)=>re.test(h)&&!Object.values(det).includes(ix));if(i>=0)det[k]=i}
+  const body=rows.slice(hr+1).filter(r=>r.some(c=>String(c).trim()!==''));const num=v=>{if(typeof v==='number')return v;const n=parseFloat(String(v).replace(/[^\d.\-]/g,''));return isNaN(n)?0:n};
+  const sel=(k,lbl)=>`<div class="field"><label>${lbl}</label><select data-map="${k}"><option value="">(no usar)</option>${head.map((h,i)=>`<option value="${i}" ${det[k]===i?'selected':''}>${esc(h||'Columna '+(i+1))}</option>`).join('')}</select></div>`;
+  const build=()=>{const mp={};document.querySelectorAll('[data-map]').forEach(s=>mp[s.dataset.map]=s.value===''?null:+s.value);
+    return body.map(r=>{const g=k=>mp[k]==null?'':r[mp[k]];const concept=String(g('concept')).trim();if(!concept||/^total|^subtotal|^gran total/i.test(concept))return null;const est=num(g('est')),quote=num(g('quote')),paid=num(g('paid'));
+      const cv=String(g('cat')).trim(),cat=CATS.find(c=>cv&&(c.toLowerCase().includes(cv.toLowerCase())||cv.toLowerCase().includes(c.toLowerCase().split(' ')[0])))||guessCat(concept+' '+cv)||cv||'Otros';
+      return {id:uid(),cat,concept,vendor:String(g('vendor')).trim(),est,quote,status:quote>0?'cotizado':'estimado',payments:paid>0?[{id:uid(),date:new Date().toISOString().slice(0,10),amount:paid,note:'Importado de Excel'}]:[],due:'',visible:true,note:'',doc:''}}).filter(Boolean)};
+  modal(`<h2>Importar presupuesto</h2><p class="note">Revisé <b>${esc(f.name)}</b>. Confirma qué columna es cada dato.</p><div class="f2" style="margin-top:12px">${sel('concept','Concepto')}${sel('vendor','Proveedor')}${sel('cat','Categoría')}${sel('est','Estimado')}${sel('quote','Cotización o costo')}${sel('paid','Pagado o anticipo')}</div><div id="impPrev"></div>
+   <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" id="mX">Cancelar</button><button class="btn primary" id="mOk">Importar</button></div>`);
+  const prev=()=>{const it=build();$('#impPrev').innerHTML=`<p class="note"><b>${it.length} conceptos</b> listos. Primeros:</p><div class="upc">${it.slice(0,5).map(i=>`<div><span>${esc(i.concept)}<br><small class="muted">${esc(i.cat)}${i.vendor?' · '+esc(i.vendor):''}</small></span><span class="money">${money(i.quote||i.est,V.w.currency)}</span></div>`).join('')}</div>`;$('#mOk').textContent=`Importar ${it.length} conceptos`};
+  document.querySelectorAll('[data-map]').forEach(s=>s.onchange=prev);prev();$('#mX').onclick=closeModal;
+  $('#mOk').onclick=()=>{const it=build();V.w.budget.items.push(...it);markDirty();saveNow();closeModal();tabBudget($('#tab'));toast(`Importé ${it.length} conceptos.`)}};inp.click()}
+function guessCat(t){t=t.toLowerCase();const G=[['Lugar',/lugar|venue|hacienda|sal[oó]n|jard[ií]n|renta/],['Banquete',/banquete|cena|men[uú]|comida|catering|canap/],['Bebidas y barra',/barra|bebida|licor|vino|mixolog|bar\b/],['Fotografía',/fot[oó]/],['Video',/video|film/],['Música y DJ',/dj|m[uú]sica|banda|mariachi|sax|violin/],['Flores y decoración',/flor|decora|centro de mesa|arco/],['Mobiliario y mantelería',/mobiliario|silla|mesa|mantel|loza|cristaler/],['Iluminación y audio',/ilumina|luz|audio|sonido|pista/],['Pastel y postres',/pastel|postre|candy/],['Vestido y atuendo',/vestido|traje|smoking/],['Belleza',/maquill|peinado|belleza/],['Invitaciones y papelería',/invitaci|papeler|men[uú]s impresos|letrero/],['Ceremonia',/ceremonia|oficiante|juez|iglesia|misa/],['Transporte',/transporte|camioneta|auto|shuttle/],['Hospedaje',/hotel|hospedaje|villa/],['Honorarios Memories',/coordinaci|planner|memories|honorario/]];for(const [c,re] of G)if(re.test(t))return c;return ''}
+
+/* Pegar itinerario */
+function parseItin(txt){const out=[];let prev=null;for(const raw of txt.split(/\r?\n/)){const line=raw.replace(/^[\s•\-*·–—]+/,'').trim();if(!line)continue;
+  const m=line.match(/^(\d{1,2})(?:[:.h](\d{2}))?\s*(a\.?\s?m\.?|p\.?\s?m\.?|hrs?\.?|h\b)?\s*(?:[-–—:|·]|a\s+\d{1,2}(?::\d{2})?\s*(?:a\.?\s?m\.?|p\.?\s?m\.?)?)?\s*(.*)$/i);
+  if(!m||!/\d/.test(line.slice(0,2))||!m[4]){if(out.length)out[out.length-1].note=(out[out.length-1].note?out[out.length-1].note+' · ':'')+line;continue}
+  let h=+m[1],mi=+(m[2]||0);const ap=(m[3]||'').toLowerCase().replace(/[\s.]/g,'');if(h>23||mi>59)continue;
+  if(ap.startsWith('p')&&h<12)h+=12;else if(ap.startsWith('a')&&h===12)h=0;else if(!ap&&h<12&&h>=1&&h<=11&&(prev==null?h<=10:prev>=12*60))h+=12;
+  let t=h*60+mi;if(prev!=null&&t<prev-120)t+=1440;out.push({t,title:m[4].replace(/^[-–—:|·\s]+/,'').trim(),note:''});prev=t}
+  return out}
+function pasteItin(){const w=V.w;modal(`<h2>Pegar itinerario</h2><p class="note">Copia el itinerario de Word, WhatsApp o un correo y pégalo aquí. Una línea por momento, con su hora: <i>5:00 pm Ceremonia</i>.</p>
+  <textarea id="itTxt" style="min-height:180px;margin-top:10px" placeholder="4:30 pm Llegada de invitados&#10;5:00 pm Ceremonia&#10;5:45 pm Cóctel&#10;7:00 pm Cena"></textarea>
+  <div class="row" style="margin-top:6px"><label class="btn sm" for="itFile" style="cursor:pointer">Leer desde PDF o foto con IA</label><input type="file" id="itFile" hidden accept=".pdf,.jpg,.jpeg,.png,.webp,.docx,image/*,application/pdf"><span class="note" id="itMsg" style="margin:0"></span></div>
+  <div id="itPrev"></div>
+  <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" id="mX">Cancelar</button><button class="btn primary" id="mOk" disabled>Usar este itinerario</button></div>`);
+  $('#mX').onclick=closeModal;const ss=sunsetMin(w);
+  const prev=()=>{const it=parseItin($('#itTxt').value);const ai=it.findIndex(x=>/ceremonia|boda civil|bendici/i.test(x.title));
+    $('#itPrev').innerHTML=it.length?`<p class="note"><b>${it.length} momentos</b> encontrados.</p><div class="upc" style="max-height:220px;overflow:auto">${it.map((x,i)=>`<div><span>${esc(x.title)}${x.note?`<br><small class="muted">${esc(x.note)}</small>`:''}</span><span class="money">${hm(x.t)}</span></div>`).join('')}</div>
+     <fieldset style="border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:10px"><legend class="eyebrow" style="padding:0 6px">¿Cómo lo guardo?</legend>
+     <label class="row" style="font-size:13px"><input type="radio" name="itm" value="sun" ${ss!=null?'checked':''} ${ss==null?'disabled':''}> Ligarlo al atardecer: si cambia la fecha, todo se recorre solo</label>
+     <div class="row" style="margin:6px 0 8px 24px;font-size:13px"><span>Momento ancla:</span><select id="itA" style="width:auto">${it.map((x,i)=>`<option value="${i}" ${i===(ai<0?0:ai)?'selected':''}>${esc(x.title)}</option>`).join('')}</select></div>
+     <label class="row" style="font-size:13px"><input type="radio" name="itm" value="fix" ${ss==null?'checked':''}> Dejar las horas fijas</label>${ss==null?'<p class="note">Para ligarlo al atardecer, primero pon fecha y destino en "Datos y acceso".</p>':''}</fieldset>`:'';
+    $('#mOk').disabled=!it.length};
+  $('#itTxt').oninput=prev;
+  $('#itFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;const msg=$('#itMsg');msg.textContent='Leyendo con IA…';
+    try{const doc=await Store.uploadDoc(V.id,f,{kind:'otro',visible:false});V.docs.unshift(doc);const p=await aiPayload(f,doc,'itinerario');p.context=aiCtx();const r=await Store.ai(p);
+      $('#itTxt').value=(r.data.momentos||[]).map(m=>{const [h,mi]=m.hora.split(':').map(Number);return `${hm(h*60+mi)} ${m.momento}${m.notas?'\n'+m.notas:''}`}).join('\n');msg.textContent=(r.data.dudosos||[]).length?'Revisa: '+r.data.dudosos.join(', '):'Listo. Revisa las horas.';prev()}catch(err){msg.textContent=err.message}};
+  $('#mOk').onclick=()=>{const it=parseItin($('#itTxt').value);if(!it.length)return;const mode=(document.querySelector('[name="itm"]:checked')||{}).value||'fix',a=+($('#itA')?.value||0);
+    const blocks=it.map((x,i)=>({id:uid(),t:x.title,dur:Math.max(5,i<it.length-1?it[i+1].t-x.t:30),anchor:mode==='sun'&&i===a,fixed:'',couple:true,note:x.note||''}));
+    if(mode==='fix'){blocks.forEach((b,i)=>{const t=((it[i].t%1440)+1440)%1440;b.fixed=String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')});w.itinerary.blocks=blocks}
+    else{w.itinerary.blocks=blocks;w.itinerary.lead=Math.round(ss-it[a].t);w.itinerary.round=false}
+    markDirty();closeModal();tabItin($('#tab'));toast(mode==='sun'?`Listo. La ceremonia queda ${w.itinerary.lead} min antes del atardecer.`:'Itinerario cargado con horas fijas.')}}
 
 /* ---------- Acceso ---------- */
 function renderLogin(){$('#app').innerHTML=`<main class="login"><p class="eyebrow">Weddings &amp; Events</p><h1>Memories</h1><p class="muted" style="margin:6px 0 18px">Portal de bodas</p>
