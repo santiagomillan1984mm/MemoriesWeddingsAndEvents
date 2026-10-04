@@ -78,3 +78,40 @@ drop policy if exists "pareja lee archivos visibles" on storage.objects;
 create policy "pareja lee archivos visibles" on storage.objects for select to authenticated
   using (bucket_id = 'docs' and exists (select 1 from public.documents d join public.weddings w on w.id = d.wedding_id
          where d.path = storage.objects.name and d.visible and public.my_email() = any (w.couple_emails)));
+
+-- ===== Proveedores con acceso de solo lectura a la inspiración =====
+create table if not exists public.wedding_vendors (
+  id uuid primary key default gen_random_uuid(),
+  wedding_id uuid not null references public.weddings(id) on delete cascade,
+  email text not null,
+  nombre text default '',
+  created_at timestamptz default now(),
+  unique (wedding_id, email)
+);
+alter table public.wedding_vendors enable row level security;
+drop policy if exists "planner da acceso a proveedores" on public.wedding_vendors;
+create policy "planner da acceso a proveedores" on public.wedding_vendors for all to authenticated
+  using (exists (select 1 from public.weddings w where w.id = wedding_id and public.puede(w.planner_id)))
+  with check (exists (select 1 from public.weddings w where w.id = wedding_id and public.puede(w.planner_id)));
+drop policy if exists "proveedor ve su acceso" on public.wedding_vendors;
+create policy "proveedor ve su acceso" on public.wedding_vendors for select to authenticated using (email = public.my_email());
+grant select, insert, update, delete on public.wedding_vendors to authenticated;
+
+create or replace function public.es_proveedor(wid text) returns boolean language sql stable security definer set search_path = public as
+$$ select exists (select 1 from public.wedding_vendors v where v.wedding_id::text = wid and v.email = public.my_email()) $$;
+
+-- Lo único que ve el proveedor de cada boda: nombres, fecha, lugar y la inspiración (nada de presupuesto ni itinerario)
+create or replace function public.bodas_proveedor() returns table (id uuid, couple text, date date, place text, loc jsonb, insp jsonb, lang text)
+  language sql stable security definer set search_path = public as
+$$ select w.id, w.couple, w.date, w.place, w.loc, w.extra -> 'insp', w.extra ->> 'lang'
+   from public.weddings w join public.wedding_vendors v on v.wedding_id = w.id
+   where v.email = public.my_email() order by w.date $$;
+grant execute on function public.bodas_proveedor() to authenticated;
+
+drop policy if exists "proveedor ve inspiracion" on public.documents;
+create policy "proveedor ve inspiracion" on public.documents for select to authenticated
+  using (kind = 'inspiracion' and public.es_proveedor(wedding_id::text));
+drop policy if exists "proveedor ve fotos de inspiracion" on storage.objects;
+create policy "proveedor ve fotos de inspiracion" on storage.objects for select to authenticated
+  using (bucket_id = 'docs' and exists (select 1 from public.documents d
+         where d.path = storage.objects.name and d.kind = 'inspiracion' and public.es_proveedor(d.wedding_id::text)));
