@@ -87,6 +87,7 @@ const TOOLS = {
       properties: {
         estilo: { type: 'string', description: 'Una o dos frases con el estilo general' },
         paleta: { type: 'array', items: { type: 'object', properties: { nombre: { type: 'string' }, hex: { type: 'string' } }, required: ['nombre', 'hex'] }, description: '4 a 7 colores' },
+        tipografia: { type: 'array', items: { type: 'string' }, description: 'Tipografías que se ven en las capturas de su página web: estilo (serif clásica, script caligráfica, sans moderna) y el nombre probable de la fuente si se reconoce, y para qué la usan (nombres, títulos, texto)' },
         flores: { type: 'array', items: { type: 'string' }, description: 'Flores y follajes que se reconocen' },
         ceremonia: { type: 'array', items: { type: 'string' }, description: 'Ideas de la ceremonia: arco, pasillo, sillas, altar' },
         decoracion: { type: 'array', items: { type: 'string' }, description: 'Elementos de decoración, texturas, mobiliario, iluminación' },
@@ -105,7 +106,12 @@ function prompt(mode, ctx) {
   if (mode === 'presupuesto') return `Eres asistente de una wedding planner en México. Lee este presupuesto de boda. ${boda}
 ${FIEL}
 Cada encabezado o separación del documento es una sección (por ejemplo "Alimentos y Bebidas", "Decoración"). Los renglones de subtotal o total de una sección van en su subtotal, no como concepto. Si aparece IVA u otro impuesto (por ejemplo IVA 16%), regístralo en impuestos con su importe tal cual. El total es el que dice el documento. Si un dato no aparece, usa null: no inventes.`;
-  if (mode === 'inspiracion') return `Eres asistente de una wedding planner en México. Estas son fotos de inspiración que juntaron los novios y la planner, agrupadas por sección (flores, ceremonia, decoración). Describe el estilo, saca una paleta de colores con nombres bonitos en español y su hex, reconoce flores y elementos, y da sugerencias concretas. ${boda}`;
+  if (mode === 'inspiracion') return `Eres asistente de una wedding planner en México. Estas son fotos de inspiración que juntaron los novios y la planner, agrupadas por sección (inspiración general, flores, ceremonia, decoración). Describe el estilo, saca una paleta de colores con nombres bonitos en español y su hex, reconoce flores y elementos, y da sugerencias concretas. ${boda}
+Muchas fotos son CAPTURAS DE PANTALLA de la página web de la boda (vienen marcadas, o se nota por el formato de celular). En esas:
+- Ignora por completo todo lo del celular o del navegador: barra de estado, hora, wifi, batería, señal, notificaciones, barra de direcciones, pestañas, botones del navegador, teclado y cualquier ícono del sistema.
+- Concéntrate solo en el diseño de la página web: sus colores (fondo, textos, detalles, ilustraciones, fotos), la tipografía que escogieron (estilo y nombre probable de la fuente) y el estilo gráfico.
+- La paleta debe salir de los colores de la página y de las fotos de inspiración, nunca de la interfaz del teléfono.
+Si hay capturas, llena "tipografia".`;
   return `Eres asistente de una wedding planner en México. Lee esta cotización de un proveedor. ${boda}
 ${FIEL}
 - Registra todos los renglones en el orden del documento. Si el documento tiene secciones o encabezados, pon en cada concepto su sección con el nombre exacto.
