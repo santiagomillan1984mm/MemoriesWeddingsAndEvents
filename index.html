@@ -469,12 +469,21 @@ async function prepImage(file,max,detect){const url=URL.createObjectURL(file);tr
   const W0=im.naturalWidth||im.width,H0=im.naturalHeight||im.height,shot=!!detect&&looksShot(file,W0,H0);let sy=0,sh=H0;
   if(shot){if(H0/W0>1.3){sy=Math.round(H0*.065);sh=H0-sy-Math.round(H0*.095)}else{sy=Math.round(H0*.085);sh=H0-sy}}
   const s=Math.min(1,max/Math.max(W0,sh)),c=document.createElement('canvas');c.width=Math.round(W0*s);c.height=Math.round(sh*s);c.getContext('2d').drawImage(im,0,sy,W0,sh,0,0,c.width,c.height);
-  const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',.86));return {blob,palette:paletteOf(c),shot}}finally{URL.revokeObjectURL(url)}}
+  const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',.86));let palette=shot?paletteFlat(c):paletteOf(c);if(shot&&!palette.length)palette=paletteOf(c);return {blob,palette,shot}}finally{URL.revokeObjectURL(url)}}
 /* Paleta: k-means sobre una muestra de pixeles */
 function paletteOf(c){const S=64,t=document.createElement('canvas');t.width=S;t.height=Math.max(1,Math.round(S*c.height/c.width));const x=t.getContext('2d');x.drawImage(c,0,0,t.width,t.height);const d=x.getImageData(0,0,t.width,t.height).data,px=[];
   for(let i=0;i<d.length;i+=4){if(d[i+3]<128)continue;px.push([d[i],d[i+1],d[i+2]])}if(!px.length)return [];const K=6;let cs=[];for(let k=0;k<K;k++)cs.push(px[Math.floor((k+.5)*px.length/K)].slice());
   let as=new Array(px.length).fill(0);for(let it=0;it<10;it++){const sum=cs.map(()=>[0,0,0,0]);px.forEach((p,i)=>{let b=0,bd=1e9;cs.forEach((c,k)=>{const dd=(p[0]-c[0])**2+(p[1]-c[1])**2+(p[2]-c[2])**2;if(dd<bd){bd=dd;b=k}});as[i]=b;const s2=sum[b];s2[0]+=p[0];s2[1]+=p[1];s2[2]+=p[2];s2[3]++});cs=cs.map((c,k)=>sum[k][3]?[sum[k][0]/sum[k][3],sum[k][1]/sum[k][3],sum[k][2]/sum[k][3]]:c)}
   const cnt=cs.map((_,k)=>as.filter(a=>a===k).length);return cs.map((c,k)=>({hex:'#'+c.map(v=>Math.round(v).toString(16).padStart(2,'0')).join('').toUpperCase(),w:cnt[k]/px.length})).filter(c=>c.w>.03).sort((a,b)=>b.w-a.w)}
+/* Paleta del diseño de una página web: solo zonas de color parejo (fondos, recuadros, letras grandes, adornos). Las fotos dentro de la página tienen textura y se ignoran. */
+function paletteFlat(c){const Wd=Math.min(900,c.width),Hd=Math.max(1,Math.round(Wd*c.height/c.width)),t=document.createElement('canvas');t.width=Wd;t.height=Hd;const x=t.getContext('2d');x.drawImage(c,0,0,Wd,Hd);const d=x.getImageData(0,0,Wd,Hd).data;
+  const R=2,keep=new Uint8Array(Wd*Hd);
+  for(let y=R;y<Hd-R;y++)for(let X=R;X<Wd-R;X++){const i=(y*Wd+X)*4;let ok=true;for(let dy=-R;dy<=R&&ok;dy++)for(let dx=-R;dx<=R;dx++){const j=((y+dy)*Wd+X+dx)*4;if(Math.abs(d[i]-d[j])>2||Math.abs(d[i+1]-d[j+1])>2||Math.abs(d[i+2]-d[j+2])>2){ok=false;break}}if(ok)keep[y*Wd+X]=1}
+  // colores exactos: se agrupan los pixeles parejos por color y se suman los parecidos
+  const bins=new Map();let tot=0;for(let k=0;k<keep.length;k++)if(keep[k]){const i=k*4,key=(d[i]>>3)<<10|(d[i+1]>>3)<<5|(d[i+2]>>3);let e=bins.get(key);if(!e)bins.set(key,e=[0,0,0,0]);e[0]+=d[i];e[1]+=d[i+1];e[2]+=d[i+2];e[3]++;tot++}
+  if(!tot)return [];const cl=[];for(const e of [...bins.values()].sort((a,b)=>b[3]-a[3])){if(e[3]/tot<.002)break;const m=[e[0]/e[3],e[1]/e[3],e[2]/e[3]];const near=cl.find(q=>Math.hypot(q.m[0]-m[0],q.m[1]-m[1],q.m[2]-m[2])<22);
+    if(near){near.s[0]+=e[0];near.s[1]+=e[1];near.s[2]+=e[2];near.n+=e[3]}else cl.push({m,s:[e[0],e[1],e[2]],n:e[3]})}
+  return cl.map(q=>({hex:'#'+q.s.map(v=>Math.round(v/q.n).toString(16).padStart(2,'0')).join('').toUpperCase(),w:q.n/tot})).filter(q=>q.w>.015).sort((a,b)=>b.w-a.w).slice(0,6)}
 function mergePalettes(list,n){const all=[];for(const p of list)for(const c of p||[])all.push(c);const hx=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));const out=[];
   for(const c of all.sort((a,b)=>b.w-a.w)){const v=hx(c.hex);const near=out.find(o=>{const u=hx(o.hex);return Math.hypot(u[0]-v[0],u[1]-v[1],u[2]-v[2])<38});if(near)near.w+=c.w;else out.push({hex:c.hex,w:c.w})}
   return out.sort((a,b)=>b.w-a.w).slice(0,n||6)}

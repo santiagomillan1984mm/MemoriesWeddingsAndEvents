@@ -110,7 +110,8 @@ Cada encabezado o separación del documento es una sección (por ejemplo "Alimen
 Muchas fotos son CAPTURAS DE PANTALLA de la página web de la boda (vienen marcadas, o se nota por el formato de celular). En esas:
 - Ignora por completo todo lo del celular o del navegador: barra de estado, hora, wifi, batería, señal, notificaciones, barra de direcciones, pestañas, botones del navegador, teclado y cualquier ícono del sistema.
 - Concéntrate solo en el diseño de la página web: sus colores (fondo, textos, detalles, ilustraciones, fotos), la tipografía que escogieron (estilo y nombre probable de la fuente) y el estilo gráfico.
-- La paleta debe salir de los colores de la página y de las fotos de inspiración, nunca de la interfaz del teléfono.
+- La paleta de una captura sale del DISEÑO de la página: color de fondo, de los textos, recuadros, botones, ornamentos e ilustraciones. NO tomes colores de las fotografías que aparecen dentro de la página (mar, cielo, arena, vegetación, piel, ropa de la gente): esas fotos son contenido, no el diseño. Nunca uses colores de la interfaz del teléfono.
+- En las fotos de inspiración que NO son capturas (flores, decoración, ceremonia), sí toma los colores de la foto.
 Si hay capturas, llena "tipografia".`;
   return `Eres asistente de una wedding planner en México. Lee esta cotización de un proveedor. ${boda}
 ${FIEL}
