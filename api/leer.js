@@ -112,7 +112,8 @@ Muchas fotos son CAPTURAS DE PANTALLA de la página web de la boda (vienen marca
 - Concéntrate solo en el diseño de la página web: sus colores (fondo, textos, detalles, ilustraciones, fotos), la tipografía que escogieron (estilo y nombre probable de la fuente) y el estilo gráfico.
 - La paleta de una captura sale del DISEÑO de la página: color de fondo, de los textos, recuadros, botones, ornamentos e ilustraciones. NO tomes colores de las fotografías ni de las ilustraciones o dibujos del lugar que aparecen dentro de la página (mar, cielo, arena, vegetación, edificios, mapas, ilustraciones del venue, piel, ropa de la gente): son contenido, no el diseño. Solo cuentan el fondo, los textos, los recuadros, botones, líneas y ornamentos pequeños del diseño. Nunca uses colores de la interfaz del teléfono.
 - En las fotos de inspiración que NO son capturas (flores, decoración, ceremonia), sí toma los colores de la foto.
-Si hay capturas, llena "tipografia".`;
+Si hay capturas, llena "tipografia".
+Cada foto viene con la indicación "TOMAR SOLO": de esa foto toma únicamente lo indicado (por ejemplo, si dice solo colores y tipografía, no describas flores ni decoración de esa foto; si no incluye colores, no uses sus colores para la paleta; si dice "nada", úsala solo como referencia general).`;
   return `Eres asistente de una wedding planner en México. Lee esta cotización de un proveedor. ${boda}
 ${FIEL}
 - Registra todos los renglones en el orden del documento. Si el documento tiene secciones o encabezados, pon en cada concepto su sección con el nombre exacto.
