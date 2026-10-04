@@ -115,3 +115,13 @@ drop policy if exists "proveedor ve fotos de inspiracion" on storage.objects;
 create policy "proveedor ve fotos de inspiracion" on storage.objects for select to authenticated
   using (bucket_id = 'docs' and exists (select 1 from public.documents d
          where d.path = storage.objects.name and d.kind = 'inspiracion' and public.es_proveedor(d.wedding_id::text)));
+
+-- ===== Itinerarios en PDF compartidos con proveedores elegidos =====
+drop policy if exists "proveedor ve itinerario compartido" on public.documents;
+create policy "proveedor ve itinerario compartido" on public.documents for select to authenticated
+  using (kind = 'itinerario' and public.es_proveedor(wedding_id::text) and coalesce(meta -> 'para', '[]'::jsonb) ? public.my_email());
+drop policy if exists "proveedor abre itinerario compartido" on storage.objects;
+create policy "proveedor abre itinerario compartido" on storage.objects for select to authenticated
+  using (bucket_id = 'docs' and exists (select 1 from public.documents d
+         where d.path = storage.objects.name and d.kind = 'itinerario' and public.es_proveedor(d.wedding_id::text)
+           and coalesce(d.meta -> 'para', '[]'::jsonb) ? public.my_email()));
