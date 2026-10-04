@@ -951,7 +951,7 @@ function tabInsp(el,ro){const w=V.w,pl=isPlanner()&&!ro,me=Store.user?.id,docs=V
   const iac=$('#iAddCol');if(iac)iac.onclick=()=>colorPicker(w,docs,c=>{w.extra=w.extra||{};const A=w.extra.addCols=w.extra.addCols||[];const hx=c.hex.toUpperCase();const i=A.findIndex(x=>x.hex===hx);if(i>=0)A[i]=Object.assign(A[i],c,{hex:hx});else A.push(Object.assign({},c,{hex:hx}));
     w.extra.hideCols=(w.extra.hideCols||[]).filter(h=>h!==hx);w.extra.colRoles=Object.assign(w.extra.colRoles||{},{[hx]:c.rol});markDirty();renderWedding();toast(tr('Color agregado.'))});
   const unh=$('#iUnhide');if(unh)unh.onclick=()=>{w.extra.hideCols=[];markDirty();renderWedding()};
-  const ipl=$('#iPal');if(ipl)ipl.onclick=async()=>{ipl.disabled=true;const t0=ipl.textContent;ipl.textContent=tr('Preparando…');try{const p2=withAccent(rolesOf(aiPal.length?aiPal:pal));const blob=await paletteCard(w,p2,ai,docs);const nm='paleta-'+((w.couple||'boda').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w]+/g,'-').replace(/^-|-$/g,'').toLowerCase())+'.png';
+  const ipl=$('#iPal');if(ipl)ipl.onclick=async()=>{ipl.disabled=true;const t0=ipl.textContent;ipl.textContent=tr('Preparando…');try{const p2=withAccent(rolesOf(aiPal.length?aiPal:pal));const blob=await paletteCard(w,p2,ai,docs,ideas);const nm='paleta-'+((w.couple||'boda').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w]+/g,'-').replace(/^-|-$/g,'').toLowerCase())+'.png';
       const f=new File([blob],nm,{type:'image/png'});if(COARSE_SHARE&&navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:tr('Paleta de colores')})}catch(e){}}else saveBlob(blob,nm)}catch(e){toast(tr('No se pudo crear la imagen.'))}ipl.disabled=false;ipl.textContent=t0};
   const shb=$('#iShare');if(shb)shb.onclick=()=>{V.tab='datos';renderWedding();setTimeout(()=>{const v=$('#vendBox');if(v)v.scrollIntoView({behavior:'smooth',block:'center'})},200)};
   const ia=$('#iAI');if(ia)ia.onclick=async()=>{ia.disabled=true;ia.textContent=tr('Analizando fotos…');
@@ -992,7 +992,7 @@ function colorPicker(w,docs,done){let st={h:95,s:.25,v:.7,role:'acento',name:'',
 const COARSE_SHARE=matchMedia('(pointer:coarse)').matches;
 function rr(x,X,Y,W,H,R){x.beginPath();x.moveTo(X+R,Y);x.arcTo(X+W,Y,X+W,Y+H,R);x.arcTo(X+W,Y+H,X,Y+H,R);x.arcTo(X,Y+H,X,Y,R);x.arcTo(X,Y,X+W,Y,R);x.closePath()}
 async function loadPic(url){const bl=await (await fetch(url)).blob();const u=URL.createObjectURL(bl);const im=new Image();await new Promise((r,j)=>{im.onload=r;im.onerror=j;im.src=u});return im}
-async function paletteCard(w,pal,ai,docs){await fontsReady();const logo=await logoImg();const W=1080,H=1350,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');const en=LANG==='en';
+async function paletteCard(w,pal,ai,docs,ideas){ideas=ideas||[];await fontsReady();const logo=await logoImg();const W=1080,H=1350,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');const en=LANG==='en';
   x.fillStyle='#FBF8F3';x.fillRect(0,0,W,H);x.strokeStyle='#E7DFD2';x.lineWidth=2;rr(x,28,28,W-56,H-56,26);x.stroke();
   const lw=560,lh=lw*logo.h/logo.w;x.drawImage(logo.im,(W-lw)/2,70,lw,lh);let y=70+lh+56;
   const sp=t=>{if('letterSpacing' in x)x.letterSpacing=t};
@@ -1010,6 +1010,11 @@ async function paletteCard(w,pal,ai,docs){await fontsReady();const logo=await lo
   if(acc.length)head(en?'MAIN COLORS':'COLORES PRINCIPALES');
   grid(main,main.length>4?200:220,acc.length?140:(main.length>3?170:220),1);
   if(acc.length){y+=26;head(en?'ACCENT COLORS':'COLORES DE ACENTO');grid(acc,170,100,1)}
+  const sug=ideas.filter(c=>!pal.some(p=>p.hex.toUpperCase()===c.hex.toUpperCase())).slice(0,5);
+  if(sug.length){y+=26;head(en?'SUGGESTED ACCENTS':'ACENTOS SUGERIDOS');const n=sug.length,sw=150,sh=80,gx=22,rw=n*sw+(n-1)*gx;
+    sug.forEach((c,i)=>{const X=(W-rw)/2+i*(sw+gx);x.fillStyle=c.hex;rr(x,X,y,sw,sh,16);x.fill();x.strokeStyle='rgba(0,0,0,.08)';x.lineWidth=2;x.stroke();
+      x.fillStyle='#2B2F2C';x.font='400 22px "Josefin Sans", Arial, sans-serif';x.fillText(c.nombre||colorName(c.hex),X+sw/2,y+sh+28);x.fillStyle='#8A8F8C';x.font='16px "IBM Plex Mono", monospace';x.fillText(c.hex.toUpperCase(),X+sw/2,y+sh+50);
+      x.fillStyle='#A9843F';x.font='italic 15px Georgia, serif';x.fillText(tr(c.rule),X+sw/2,y+sh+72)});y+=sh+92}
   const rows=0,sh=0,gy=0;
   y+=rows*(sh+gy)+10;
   const real=docs.filter(z=>!z.meta?.shot);const pics=[];for(const k of ['general','flores','ceremonia','decoracion']){const d=real.find(z=>secOf(z)===k);if(d&&pics.length<3)pics.push(d)}for(const d of real)if(pics.length<3&&!pics.includes(d))pics.push(d);
