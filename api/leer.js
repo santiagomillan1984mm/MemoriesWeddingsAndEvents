@@ -87,7 +87,12 @@ const TOOLS = {
       properties: {
         estilo: { type: 'string', description: 'Una o dos frases con el estilo general' },
         paleta: { type: 'array', items: { type: 'object', properties: { nombre: { type: 'string' }, hex: { type: 'string' }, rol: { type: 'string', enum: ['principal', 'acento'], description: 'principal = colores dominantes que ocupan mucha superficie o neutros de base (fondos, mantelería, follaje, blancos, beiges, grises); acento = colores con más intensidad que se usan poco para resaltar detalles (metales como dorado o cobre, flores de contraste, listones, papelería)' } }, required: ['nombre', 'hex', 'rol'] }, description: '4 a 8 colores: primero los principales (2 a 5) y luego los de acento (1 a 3), siguiendo la regla 60-30-10' },
-        tipografia: { type: 'array', items: { type: 'string' }, description: 'Tipografías que se ven en las capturas de su página web: estilo (serif clásica, script caligráfica, sans moderna) y el nombre probable de la fuente si se reconoce, y para qué la usan (nombres, títulos, texto)' },
+        tipografia: { type: 'array', description: 'Cada tipografía distinta que se ve en las capturas de la página web o en papelería', items: { type: 'object', properties: {
+          uso: { type: 'string', description: 'Para qué la usan: Nombres de los novios, Títulos, Subtítulos, Texto, Fechas, etc.' },
+          fuente: { type: 'string', description: 'Nombre exacto más probable de la fuente, por ejemplo Arial, Helvetica, Times New Roman, Georgia, Garamond, Playfair Display, Cormorant Garamond, Bodoni Moda, Cinzel, Montserrat, Lato, Open Sans, Raleway, Josefin Sans, Poppins, Great Vibes, Allura, Parisienne, Pinyon Script, Alex Brush, Dancing Script, Sacramento, Tangerine, Italianno' },
+          alternativas: { type: 'array', items: { type: 'string' }, description: '2 o 3 fuentes muy parecidas, de preferencia gratuitas de Google Fonts' },
+          estilo: { type: 'string', description: 'serif clásica, serif moderna/didona, sans geométrica, sans humanista, script caligráfica, script manuscrita, etc.' },
+          confianza: { type: 'string', enum: ['alta', 'media', 'baja'] } }, required: ['uso', 'fuente', 'estilo', 'confianza'] } },
         flores: { type: 'array', items: { type: 'string' }, description: 'Flores y follajes que se reconocen' },
         ceremonia: { type: 'array', items: { type: 'string' }, description: 'Ideas de la ceremonia: arco, pasillo, sillas, altar' },
         decoracion: { type: 'array', items: { type: 'string' }, description: 'Elementos de decoración, texturas, mobiliario, iluminación' },
@@ -112,7 +117,7 @@ Muchas fotos son CAPTURAS DE PANTALLA de la página web de la boda (vienen marca
 - Concéntrate solo en el diseño de la página web: sus colores (fondo, textos, detalles, ilustraciones, fotos), la tipografía que escogieron (estilo y nombre probable de la fuente) y el estilo gráfico.
 - La paleta de una captura sale del DISEÑO de la página: color de fondo, de los textos, recuadros, botones, ornamentos e ilustraciones. NO tomes colores de las fotografías ni de las ilustraciones o dibujos del lugar que aparecen dentro de la página (mar, cielo, arena, vegetación, edificios, mapas, ilustraciones del venue, piel, ropa de la gente): son contenido, no el diseño. Solo cuentan el fondo, los textos, los recuadros, botones, líneas y ornamentos pequeños del diseño. Nunca uses colores de la interfaz del teléfono.
 - En las fotos de inspiración que NO son capturas (flores, decoración, ceremonia), sí toma los colores de la foto.
-Si hay capturas, llena "tipografia".
+Si alguna foto pide tipografía, llena "tipografia": identifica cada fuente distinta por su nombre (Arial, Times New Roman, Playfair Display…) mirando la forma de las letras (remates, contraste de trazo, la forma de la g, la a, la R, la Q, las mayúsculas en cursiva). Si no estás segura del nombre exacto, da el más parecido, márcalo con confianza media o baja y da alternativas.
 Cada foto viene con la indicación "TOMAR SOLO": de esa foto toma únicamente lo indicado (por ejemplo, si dice solo colores y tipografía, no describas flores ni decoración de esa foto; si no incluye colores, no uses sus colores para la paleta; si dice "nada", úsala solo como referencia general).`;
   return `Eres asistente de una wedding planner en México. Lee esta cotización de un proveedor. ${boda}
 ${FIEL}
