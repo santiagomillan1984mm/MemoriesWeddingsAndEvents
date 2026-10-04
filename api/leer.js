@@ -4,31 +4,64 @@ const SB_URL = process.env.SUPABASE_URL || 'https://fpizlsefbcmhzmkwynxv.supabas
 const SB_KEY = process.env.SUPABASE_KEY || 'sb_publishable_eynYPP8nIpmbP3zHHoujOA_VmZ8GBI9';
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5';
 
-const CATS = ['Lugar','Banquete','Bebidas y barra','Fotografía','Video','Música y DJ','Flores y decoración','Mobiliario y mantelería','Iluminación y audio','Pastel y postres','Vestido y atuendo','Belleza','Invitaciones y papelería','Ceremonia','Transporte','Hospedaje','Recuerdos y regalos','Honorarios Memories','Otros'];
+const CATS = ['Lugar','Alimentos y bebidas','Fotografía','Video','Música y DJ','Flores y decoración','Mobiliario y mantelería','Iluminación y audio','Pastel y postres','Vestido y atuendo','Belleza','Invitaciones y papelería','Ceremonia','Transporte','Hospedaje','Recuerdos y regalos','Honorarios Memories','Otros'];
+const NUM = { type: ['number', 'null'] };
+const TXT = { type: ['string', 'null'] };
+const IMPUESTOS = { type: 'array', description: 'Cada impuesto tal como aparece: IVA 16%, ISH, servicio, propina, etc.', items: { type: 'object', properties: {
+  nombre: { type: 'string', description: 'Texto exacto, por ejemplo "IVA 16%"' }, tasa: { ...NUM, description: 'Porcentaje, por ejemplo 16' }, importe: NUM }, required: ['nombre'] } };
+const CONCEPTO = { type: 'object', properties: {
+  seccion: { ...TXT, description: 'Nombre exacto de la sección o encabezado del documento al que pertenece (por ejemplo "ALIMENTOS Y BEBIDAS"). null si no hay secciones.' },
+  concepto: { type: 'string', description: 'Texto exacto del concepto, con sus mayúsculas, acentos y palabras tal cual' },
+  detalle: { ...TXT, description: 'Descripción o detalle debajo del concepto, tal cual' },
+  cantidad: NUM, unidad: { ...TXT, description: 'pza, persona, hora, etc.' }, precio_unitario: NUM, importe: NUM }, required: ['concepto'] };
+const TIPO_DOC = { type: 'string', enum: ['cotizacion', 'presupuesto', 'itinerario', 'contrato', 'otro'], description: 'cotizacion = de un proveedor; presupuesto = presupuesto general de la boda con varias áreas o proveedores; itinerario = programa con horas' };
 
 const TOOLS = {
   cotizacion: {
     name: 'registrar_cotizacion',
-    description: 'Registra los datos leídos de la cotización de un proveedor de boda.',
+    description: 'Transcribe tal cual la cotización de un proveedor de boda.',
     input_schema: {
       type: 'object',
       properties: {
-        proveedor: { type: ['string', 'null'], description: 'Nombre comercial del proveedor' },
+        tipo_documento: TIPO_DOC,
+        proveedor: { ...TXT, description: 'Nombre comercial del proveedor, como aparece' },
         categoria: { type: 'string', enum: CATS },
         moneda: { type: 'string', enum: ['MXN', 'USD'] },
-        conceptos: { type: 'array', items: { type: 'object', properties: {
-          concepto: { type: 'string' }, cantidad: { type: ['number', 'null'] }, precio_unitario: { type: ['number', 'null'] }, importe: { type: ['number', 'null'] } }, required: ['concepto'] } },
-        subtotal: { type: ['number', 'null'] },
-        impuestos: { type: ['number', 'null'] },
-        total: { type: ['number', 'null'], description: 'Total final a pagar, con impuestos si vienen' },
-        anticipo: { type: ['number', 'null'], description: 'Monto de anticipo o apartado, si se menciona' },
-        vigencia: { type: ['string', 'null'], description: 'Fecha de vigencia AAAA-MM-DD si aparece' },
-        incluye: { type: ['string', 'null'], description: 'Resumen breve de lo que incluye' },
-        condiciones: { type: ['string', 'null'], description: 'Condiciones de pago, cancelación, horas extra' },
-        dudosos: { type: 'array', items: { type: 'string' }, description: 'Campos que no se pudieron leer con seguridad: proveedor, total, anticipo, vigencia, categoria, conceptos.N' },
-        nota: { type: ['string', 'null'], description: 'Aviso corto para la planner si algo no cuadra' }
+        conceptos: { type: 'array', description: 'Todos los renglones en el mismo orden del documento', items: CONCEPTO },
+        subtotal: NUM,
+        descuento: NUM,
+        impuestos: IMPUESTOS,
+        total: { ...NUM, description: 'Total final a pagar tal como viene en el documento (con IVA si lo incluye)' },
+        anticipo: { ...NUM, description: 'Monto de anticipo o apartado, si se menciona' },
+        vigencia: { ...TXT, description: 'Fecha de vigencia AAAA-MM-DD si aparece' },
+        incluye: { ...TXT, description: 'Lo que incluye, con las palabras del documento' },
+        condiciones: { ...TXT, description: 'Condiciones de pago, cancelación, horas extra, tal cual' },
+        dudosos: { type: 'array', items: { type: 'string' }, description: 'Campos que no se pudieron leer con seguridad: proveedor, total, anticipo, vigencia, categoria, impuestos, conceptos.N' },
+        nota: { ...TXT, description: 'Aviso corto para la planner si algo no cuadra' }
       },
-      required: ['categoria', 'moneda', 'conceptos', 'dudosos']
+      required: ['tipo_documento', 'categoria', 'moneda', 'conceptos', 'dudosos']
+    }
+  },
+  presupuesto: {
+    name: 'registrar_presupuesto',
+    description: 'Transcribe tal cual un presupuesto de boda con sus secciones.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        titulo: TXT,
+        moneda: { type: 'string', enum: ['MXN', 'USD'] },
+        secciones: { type: 'array', description: 'Las secciones en el mismo orden y con el mismo nombre del documento', items: { type: 'object', properties: {
+          nombre: { type: 'string', description: 'Nombre exacto de la sección, por ejemplo "Alimentos y Bebidas"' },
+          conceptos: { type: 'array', items: { type: 'object', properties: {
+            concepto: { type: 'string', description: 'Texto exacto' }, proveedor: TXT, detalle: TXT, cantidad: NUM, unidad: TXT, precio_unitario: NUM, importe: NUM }, required: ['concepto'] } },
+          subtotal: NUM }, required: ['nombre', 'conceptos'] } },
+        subtotal: NUM,
+        impuestos: IMPUESTOS,
+        total: NUM,
+        notas: TXT,
+        dudosos: { type: 'array', items: { type: 'string' } }
+      },
+      required: ['secciones', 'dudosos']
     }
   },
   itinerario: {
@@ -38,20 +71,49 @@ const TOOLS = {
       type: 'object',
       properties: {
         momentos: { type: 'array', items: { type: 'object', properties: {
-          hora: { type: 'string', description: 'Hora de inicio en formato 24 h HH:MM' }, momento: { type: 'string' }, notas: { type: ['string', 'null'] } }, required: ['hora', 'momento'] } },
+          hora: { ...TXT, description: 'Hora de inicio en formato 24 h HH:MM, por ejemplo 17:30. null si ese momento no trae hora' },
+          duracion_min: NUM,
+          momento: { type: 'string', description: 'Texto exacto del momento' }, notas: TXT }, required: ['momento'] } },
         dudosos: { type: 'array', items: { type: 'string' } }
       },
       required: ['momentos', 'dudosos']
     }
+  },
+  inspiracion: {
+    name: 'registrar_inspiracion',
+    description: 'Describe la inspiración visual de una boda a partir de fotos.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        estilo: { type: 'string', description: 'Una o dos frases con el estilo general' },
+        paleta: { type: 'array', items: { type: 'object', properties: { nombre: { type: 'string' }, hex: { type: 'string' } }, required: ['nombre', 'hex'] }, description: '4 a 7 colores' },
+        flores: { type: 'array', items: { type: 'string' }, description: 'Flores y follajes que se reconocen' },
+        ceremonia: { type: 'array', items: { type: 'string' }, description: 'Ideas de la ceremonia: arco, pasillo, sillas, altar' },
+        decoracion: { type: 'array', items: { type: 'string' }, description: 'Elementos de decoración, texturas, mobiliario, iluminación' },
+        sugerencias: { type: 'array', items: { type: 'string' }, description: '3 a 5 ideas concretas para llevarlo a la boda' }
+      },
+      required: ['estilo', 'paleta']
+    }
   }
 };
 
+const FIEL = 'Transcribe TAL CUAL: copia cada texto exactamente como está escrito, con las mismas mayúsculas y minúsculas, acentos, palabras y orden. No resumas, no traduzcas, no corrijas ni cambies nombres. Respeta las secciones y separaciones del documento con su nombre exacto. Copia los montos sin redondear.';
 function prompt(mode, ctx) {
   const c = ctx || {};
   const boda = `Boda: ${c.pareja || 'sin nombre'}; fecha ${c.fecha || 'sin fecha'}; ${c.invitados || '?'} invitados; moneda habitual ${c.moneda || 'MXN'}.`;
-  if (mode === 'itinerario') return `Eres asistente de una wedding planner en México. Lee este itinerario de boda y registra cada momento con su hora de inicio en formato 24 h. ${boda} No inventes horas: si un momento no tiene hora, déjalo fuera y menciónalo en dudosos.`;
-  return `Eres asistente de una wedding planner en México. Lee esta cotización de un proveedor y registra los datos con la herramienta. ${boda}
-Reglas: copia los montos tal como aparecen, sin redondear. Si el precio es por persona, calcula el importe con la cantidad indicada en el documento; si no hay cantidad, deja el importe en null y explícalo en "nota". Si el IVA viene aparte, el total debe incluirlo. Si un dato no aparece, usa null: no inventes. Escribe en "dudosos" cualquier campo que no pudiste leer con seguridad. Elige la categoría que mejor corresponda.`;
+  if (mode === 'itinerario') return `Eres asistente de una wedding planner en México. Lee este itinerario de boda y registra cada momento en el orden del documento. ${boda} La hora va en formato 24 h (5:00 pm = 17:00). Copia el nombre de cada momento tal cual. Si un momento no tiene hora pero sí duración, deja hora en null y pon la duración. Si el documento es una tabla, cada renglón es un momento.`;
+  if (mode === 'presupuesto') return `Eres asistente de una wedding planner en México. Lee este presupuesto de boda. ${boda}
+${FIEL}
+Cada encabezado o separación del documento es una sección (por ejemplo "Alimentos y Bebidas", "Decoración"). Los renglones de subtotal o total de una sección van en su subtotal, no como concepto. Si aparece IVA u otro impuesto (por ejemplo IVA 16%), regístralo en impuestos con su importe tal cual. El total es el que dice el documento. Si un dato no aparece, usa null: no inventes.`;
+  if (mode === 'inspiracion') return `Eres asistente de una wedding planner en México. Estas son fotos de inspiración que juntaron los novios y la planner, agrupadas por sección (flores, ceremonia, decoración). Describe el estilo, saca una paleta de colores con nombres bonitos en español y su hex, reconoce flores y elementos, y da sugerencias concretas. ${boda}`;
+  return `Eres asistente de una wedding planner en México. Lee esta cotización de un proveedor. ${boda}
+${FIEL}
+- Registra todos los renglones en el orden del documento. Si el documento tiene secciones o encabezados, pon en cada concepto su sección con el nombre exacto.
+- Impuestos: si aparece IVA (por ejemplo IVA 16%) u otro cargo, regístralo en impuestos con su nombre exacto y su importe. Si dice "más IVA" sin el monto, calcula el 16% del subtotal, ponlo en impuestos y anótalo en dudosos ("impuestos").
+- El total es el total final del documento, con IVA si lo incluye. Si un dato no aparece, usa null: no inventes.
+- Categoría: banquete, comida, bebidas, barra y mixología van en "Alimentos y bebidas".
+- tipo_documento: indica si en realidad es un presupuesto general de toda la boda, un itinerario o un contrato.
+Escribe en "dudosos" cualquier campo que no pudiste leer con seguridad.`;
 }
 
 async function readJson(req) {
@@ -75,13 +137,20 @@ module.exports = async (req, res) => {
   const user = await u.json();
   const ps = await fetch(SB_URL + '/rest/v1/planner_settings?select=planner_id&planner_id=eq.' + encodeURIComponent(user.id), { headers: h });
   const rows = ps.ok ? await ps.json() : [];
-  if (!rows.length) return send(403, { error: 'Solo la cuenta de la planner puede leer cotizaciones.' });
+  if (!rows.length) return send(403, { error: 'Solo la cuenta de la planner puede usar la lectura con IA.' });
 
   const body = await readJson(req);
-  const mode = body.mode === 'itinerario' ? 'itinerario' : 'cotizacion';
+  const mode = ['itinerario', 'presupuesto', 'inspiracion'].includes(body.mode) ? body.mode : 'cotizacion';
   const content = [];
   try {
-    if (body.text) {
+    if (mode === 'inspiracion') {
+      const imgs = (Array.isArray(body.images) ? body.images : []).slice(0, 12);
+      if (!imgs.length) return send(400, { error: 'No llegaron fotos.' });
+      for (const im of imgs) {
+        if (im.seccion) content.push({ type: 'text', text: 'Sección: ' + String(im.seccion).slice(0, 40) });
+        if (im.b64) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: im.b64 } });
+      }
+    } else if (body.text) {
       content.push({ type: 'text', text: 'Contenido del documento:\n\n' + String(body.text).slice(0, 120000) });
     } else if (body.b64 && /^image\//.test(body.mime || '')) {
       content.push({ type: 'image', source: { type: 'base64', media_type: body.mime, data: body.b64 } });
@@ -102,7 +171,7 @@ module.exports = async (req, res) => {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({ model: MODEL, max_tokens: 4096, tools: [tool], tool_choice: { type: 'auto' }, messages: [{ role: 'user', content }] })
+    body: JSON.stringify({ model: MODEL, max_tokens: mode === 'presupuesto' || mode === 'cotizacion' ? 12000 : 4096, tools: [tool], tool_choice: { type: 'auto' }, messages: [{ role: 'user', content }] })
   });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) {
