@@ -86,7 +86,7 @@ const TOOLS = {
       type: 'object',
       properties: {
         estilo: { type: 'string', description: 'Una o dos frases con el estilo general' },
-        paleta: { type: 'array', items: { type: 'object', properties: { nombre: { type: 'string' }, hex: { type: 'string' } }, required: ['nombre', 'hex'] }, description: '4 a 7 colores' },
+        paleta: { type: 'array', items: { type: 'object', properties: { nombre: { type: 'string' }, hex: { type: 'string' }, rol: { type: 'string', enum: ['principal', 'acento'], description: 'principal = colores dominantes que ocupan mucha superficie o neutros de base (fondos, mantelería, follaje, blancos, beiges, grises); acento = colores con más intensidad que se usan poco para resaltar detalles (metales como dorado o cobre, flores de contraste, listones, papelería)' } }, required: ['nombre', 'hex', 'rol'] }, description: '4 a 8 colores: primero los principales (2 a 5) y luego los de acento (1 a 3), siguiendo la regla 60-30-10' },
         tipografia: { type: 'array', items: { type: 'string' }, description: 'Tipografías que se ven en las capturas de su página web: estilo (serif clásica, script caligráfica, sans moderna) y el nombre probable de la fuente si se reconoce, y para qué la usan (nombres, títulos, texto)' },
         flores: { type: 'array', items: { type: 'string' }, description: 'Flores y follajes que se reconocen' },
         ceremonia: { type: 'array', items: { type: 'string' }, description: 'Ideas de la ceremonia: arco, pasillo, sillas, altar' },
