@@ -14,6 +14,12 @@ const CONCEPTO = { type: 'object', properties: {
   concepto: { type: 'string', description: 'Texto exacto del concepto, con sus mayúsculas, acentos y palabras tal cual' },
   detalle: { ...TXT, description: 'Descripción o detalle debajo del concepto, tal cual' },
   cantidad: NUM, unidad: { ...TXT, description: 'pza, persona, hora, etc.' }, precio_unitario: NUM, importe: NUM }, required: ['concepto'] };
+const TIPO = { type: 'array', description: 'Cada tipografía distinta que se ve en las capturas de la página web o en papelería', items: { type: 'object', properties: {
+          uso: { type: 'string', description: 'Para qué la usan: Nombres de los novios, Títulos, Subtítulos, Texto, Fechas, etc.' },
+          fuente: { type: 'string', description: 'Nombre exacto más probable de la fuente, por ejemplo Arial, Helvetica, Times New Roman, Georgia, Garamond, Playfair Display, Cormorant Garamond, Bodoni Moda, Cinzel, Montserrat, Lato, Open Sans, Raleway, Josefin Sans, Poppins, Great Vibes, Allura, Parisienne, Pinyon Script, Alex Brush, Dancing Script, Sacramento, Tangerine, Italianno' },
+          alternativas: { type: 'array', items: { type: 'string' }, description: '2 o 3 fuentes muy parecidas, de preferencia gratuitas de Google Fonts' },
+          estilo: { type: 'string', description: 'serif clásica, serif moderna/didona, sans geométrica, sans humanista, script caligráfica, script manuscrita, etc.' },
+          confianza: { type: 'string', enum: ['alta', 'media', 'baja'] } }, required: ['uso', 'fuente', 'estilo', 'confianza'] } };
 const TIPO_DOC = { type: 'string', enum: ['cotizacion', 'presupuesto', 'itinerario', 'contrato', 'otro'], description: 'cotizacion = de un proveedor; presupuesto = presupuesto general de la boda con varias áreas o proveedores; itinerario = programa con horas' };
 
 const TOOLS = {
@@ -79,6 +85,11 @@ const TOOLS = {
       required: ['momentos', 'dudosos']
     }
   },
+  tipografia: {
+    name: 'registrar_tipografia',
+    description: 'Identifica las tipografías de capturas de la página web de una boda.',
+    input_schema: { type: 'object', properties: { tipografia: TIPO }, required: ['tipografia'] }
+  },
   inspiracion: {
     name: 'registrar_inspiracion',
     description: 'Describe la inspiración visual de una boda a partir de fotos.',
@@ -87,12 +98,7 @@ const TOOLS = {
       properties: {
         estilo: { type: 'string', description: 'Una o dos frases con el estilo general' },
         paleta: { type: 'array', items: { type: 'object', properties: { nombre: { type: 'string' }, hex: { type: 'string' }, rol: { type: 'string', enum: ['principal', 'acento'], description: 'principal = colores dominantes que ocupan mucha superficie o neutros de base (fondos, mantelería, follaje, blancos, beiges, grises); acento = colores con más intensidad que se usan poco para resaltar detalles (metales como dorado o cobre, flores de contraste, listones, papelería)' } }, required: ['nombre', 'hex', 'rol'] }, description: '4 a 8 colores: primero los principales (2 a 5) y luego los de acento (1 a 3), siguiendo la regla 60-30-10' },
-        tipografia: { type: 'array', description: 'Cada tipografía distinta que se ve en las capturas de la página web o en papelería', items: { type: 'object', properties: {
-          uso: { type: 'string', description: 'Para qué la usan: Nombres de los novios, Títulos, Subtítulos, Texto, Fechas, etc.' },
-          fuente: { type: 'string', description: 'Nombre exacto más probable de la fuente, por ejemplo Arial, Helvetica, Times New Roman, Georgia, Garamond, Playfair Display, Cormorant Garamond, Bodoni Moda, Cinzel, Montserrat, Lato, Open Sans, Raleway, Josefin Sans, Poppins, Great Vibes, Allura, Parisienne, Pinyon Script, Alex Brush, Dancing Script, Sacramento, Tangerine, Italianno' },
-          alternativas: { type: 'array', items: { type: 'string' }, description: '2 o 3 fuentes muy parecidas, de preferencia gratuitas de Google Fonts' },
-          estilo: { type: 'string', description: 'serif clásica, serif moderna/didona, sans geométrica, sans humanista, script caligráfica, script manuscrita, etc.' },
-          confianza: { type: 'string', enum: ['alta', 'media', 'baja'] } }, required: ['uso', 'fuente', 'estilo', 'confianza'] } },
+        tipografia: TIPO,
         flores: { type: 'array', items: { type: 'string' }, description: 'Flores y follajes que se reconocen' },
         ceremonia: { type: 'array', items: { type: 'string' }, description: 'Ideas de la ceremonia: arco, pasillo, sillas, altar' },
         decoracion: { type: 'array', items: { type: 'string' }, description: 'Elementos de decoración, texturas, mobiliario, iluminación' },
@@ -111,6 +117,11 @@ function prompt(mode, ctx) {
   if (mode === 'presupuesto') return `Eres asistente de una wedding planner en México. Lee este presupuesto de boda. ${boda}
 ${FIEL}
 Cada encabezado o separación del documento es una sección (por ejemplo "Alimentos y Bebidas", "Decoración"). Los renglones de subtotal o total de una sección van en su subtotal, no como concepto. Si aparece IVA u otro impuesto (por ejemplo IVA 16%), regístralo en impuestos con su importe tal cual. El total es el que dice el documento. Si un dato no aparece, usa null: no inventes.`;
+  if (mode === 'tipografia') return `Eres experta en tipografía y ayudas a una wedding planner. Estas son capturas de pantalla de la página web de la boda de unos novios. ${boda}
+Identifica cada tipografía distinta que se ve en el diseño de la página (nombres de los novios, títulos, subtítulos, texto, fechas, botones) y di el nombre exacto más probable de cada fuente, por ejemplo Arial, Helvetica, Times New Roman, Georgia, Garamond, Playfair Display, Cormorant Garamond, Bodoni Moda, Cinzel, Montserrat, Lato, Open Sans, Raleway, Josefin Sans, Poppins, Great Vibes, Allura, Parisienne, Pinyon Script, Alex Brush, Dancing Script, Sacramento, Tangerine, Italianno.
+Fíjate en la forma de las letras: remates (serif o sin remate), contraste entre trazos gruesos y delgados, la forma de la a, g, R, Q, M y de las mayúsculas en cursiva, el ancho y la altura de las minúsculas.
+Ignora todo lo del celular o el navegador (hora, batería, barra de direcciones, botones del sistema): esas letras son del teléfono, no de la página.
+Si no estás segura del nombre exacto, da el más parecido con confianza media o baja y 2 o 3 alternativas.`;
   if (mode === 'inspiracion') return `Eres asistente de una wedding planner en México. Estas son fotos de inspiración que juntaron los novios y la planner, agrupadas por sección (inspiración general, flores, ceremonia, decoración). Describe el estilo, saca una paleta de colores con nombres bonitos en español y su hex, reconoce flores y elementos, y da sugerencias concretas. ${boda}
 Muchas fotos son CAPTURAS DE PANTALLA de la página web de la boda (vienen marcadas, o se nota por el formato de celular). En esas:
 - Ignora por completo todo lo del celular o del navegador: barra de estado, hora, wifi, batería, señal, notificaciones, barra de direcciones, pestañas, botones del navegador, teclado y cualquier ícono del sistema.
@@ -153,10 +164,10 @@ module.exports = async (req, res) => {
   if (!rows.length) return send(403, { error: 'Solo la cuenta de la planner puede usar la lectura con IA.' });
 
   const body = await readJson(req);
-  const mode = ['itinerario', 'presupuesto', 'inspiracion'].includes(body.mode) ? body.mode : 'cotizacion';
+  const mode = ['itinerario', 'presupuesto', 'inspiracion', 'tipografia'].includes(body.mode) ? body.mode : 'cotizacion';
   const content = [];
   try {
-    if (mode === 'inspiracion') {
+    if (mode === 'inspiracion' || mode === 'tipografia') {
       const imgs = (Array.isArray(body.images) ? body.images : []).slice(0, 12);
       if (!imgs.length) return send(400, { error: 'No llegaron fotos.' });
       for (const im of imgs) {
